@@ -93,7 +93,9 @@ class StatsBombParser:
     def _transform_event(self, event: Dict) -> Dict:
         """Transform StatsBomb event format to our schema."""
         location = event.get('location', [None, None])
-        
+        shot_data = event.get('shot', {})
+        shot_outcome = shot_data.get('outcome', {}).get('name')
+
         transformed = {
             'event_id': event['id'],
             'match_id': event.get('match_id'),
@@ -102,12 +104,22 @@ class StatsBombParser:
             'player_id': event.get('player', {}).get('id'),
             'player_name': event.get('player', {}).get('name'),
             'event_type': event['type']['name'],
+            'event_index': event.get('index'),
             'period': event['period'],
             'timestamp': event['timestamp'],
+            'duration': event.get('duration'),
             'minute': event['minute'],
             'second': event['second'],
             'location_x': location[0] if location else None,
             'location_y': location[1] if location else None,
+            'possession_id': event.get('possession'),
+            'possession_team_id': event.get('possession_team', {}).get('id'),
+            'play_pattern': event.get('play_pattern', {}).get('name'),
+            'position_name': event.get('position', {}).get('name'),
+            'under_pressure': bool(event.get('under_pressure', False)),
+            'outcome_name': shot_outcome,
+            'shot_outcome': shot_outcome,
+            'is_goal': shot_outcome == 'Goal',
         }
         
         # Add pass-specific data if this is a pass event
@@ -126,8 +138,13 @@ class StatsBombParser:
                 'pass_type': pass_data.get('type', {}).get('name'),
                 'pass_height': pass_data.get('height', {}).get('name'),
                 'body_part': pass_data.get('body_part', {}).get('name'),
+                'technique': pass_data.get('technique', {}).get('name'),
+                'is_cross': bool(pass_data.get('cross', False)),
+                'is_switch': bool(pass_data.get('switch', False)),
+                'is_through_ball': bool(pass_data.get('through_ball', False)),
+                'is_cut_back': bool(pass_data.get('cut_back', False)),
             }
-        
+
         return transformed
     
     def parse_lineups(self, match_id: int) -> Dict[int, List[Dict]]:
@@ -215,6 +232,11 @@ class StatsBombParser:
                     'pass_type': pass_data['pass_type'],
                     'pass_height': pass_data['pass_height'],
                     'body_part': pass_data['body_part'],
+                    'technique': pass_data['technique'],
+                    'is_cross': pass_data['is_cross'],
+                    'is_switch': pass_data['is_switch'],
+                    'is_through_ball': pass_data['is_through_ball'],
+                    'is_cut_back': pass_data['is_cut_back'],
                 })
-        
+
         return passes

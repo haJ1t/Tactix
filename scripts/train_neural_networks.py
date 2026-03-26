@@ -10,7 +10,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import accuracy_score, f1_score
 import torch
@@ -27,7 +27,9 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.models import SessionLocal, init_db
 from backend.models.event import Event
+from backend.models.match import Match
 from backend.models.pass_event import PassEvent
+from backend.services.ml.holdout_utils import split_holdout
 
 # Set device
 device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
@@ -39,7 +41,7 @@ def get_all_passes_from_db():
     print("Loading all passes from database...")
     db = SessionLocal()
     try:
-        passes = db.query(PassEvent).join(Event).all()
+        passes = db.query(PassEvent).join(Event).join(Match, Event.match_id == Match.match_id).all()
         
         passes_data = []
         for p in passes:
@@ -47,6 +49,7 @@ def get_all_passes_from_db():
             if event is None:
                 continue
                 
+            match = event.match
             passes_data.append({
                 'match_id': event.match_id,
                 'passer_id': p.passer_id,
@@ -60,6 +63,8 @@ def get_all_passes_from_db():
                 'pass_outcome': p.pass_outcome,
                 'minute': event.minute,
                 'second': event.second,
+                'competition': match.competition if match else None,
+                'season': match.season if match else None,
             })
         
         print(f"  Loaded {len(passes_data):,} passes")
@@ -162,9 +167,9 @@ class PassSequenceGRU(nn.Module):
         return self.fc(last_output)
 
 
-def prepare_features(df: pd.DataFrame) -> tuple:
+def prepare_features(df: pd.DataFrame, scaler: StandardScaler = None) -> tuple:
     """Prepare features for neural network."""
-    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y', 'recipient_id'])
+    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
     
     # Calculate features
     df['pass_length'] = np.sqrt(
@@ -183,15 +188,19 @@ def prepare_features(df: pd.DataFrame) -> tuple:
     y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int).values
     
     # Normalize
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
+    if scaler is None:
+        scaler = StandardScaler()
+        X = scaler.fit_transform(X)
+    else:
+        X = scaler.transform(X)
     
-    return X, y, scaler, feature_cols
+    groups = df['match_id'].values
+    return X, y, scaler, feature_cols, groups
 
 
-def prepare_sequences(df: pd.DataFrame, seq_length: int = 5) -> tuple:
+def prepare_sequences(df: pd.DataFrame, seq_length: int = 5, scaler: StandardScaler = None) -> tuple:
     """Prepare sequence data for LSTM/GRU."""
-    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y', 'recipient_id'])
+    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
     df = df.sort_values(['match_id', 'team_id', 'minute', 'second']).reset_index(drop=True)
     
     # Features per pass
@@ -208,6 +217,7 @@ def prepare_sequences(df: pd.DataFrame, seq_length: int = 5) -> tuple:
     # Create sequences
     X_sequences = []
     y_sequences = []
+    groups = []
     
     grouped = df.groupby(['match_id', 'team_id'])
     
@@ -219,20 +229,35 @@ def prepare_sequences(df: pd.DataFrame, seq_length: int = 5) -> tuple:
         for i in range(seq_length, len(features)):
             X_sequences.append(features[i-seq_length:i])
             y_sequences.append(outcomes[i-1])  # Predict last pass in sequence
+            groups.append(match_id)
     
     X = np.array(X_sequences)
     y = np.array(y_sequences)
     
     # Normalize
-    scaler = StandardScaler()
+    if len(X) == 0:
+        if scaler is None:
+            scaler = StandardScaler()
+        return X, y, scaler, np.array(groups)
+    
     X_reshaped = X.reshape(-1, X.shape[-1])
-    X_reshaped = scaler.fit_transform(X_reshaped)
+    if scaler is None:
+        scaler = StandardScaler()
+        X_reshaped = scaler.fit_transform(X_reshaped)
+    else:
+        X_reshaped = scaler.transform(X_reshaped)
     X = X_reshaped.reshape(X.shape)
     
-    return X, y, scaler
+    return X, y, scaler, np.array(groups)
 
 
-def train_feedforward_nn(X: np.ndarray, y: np.ndarray) -> dict:
+def train_feedforward_nn(
+    X: np.ndarray,
+    y: np.ndarray,
+    groups: np.ndarray,
+    X_holdout: np.ndarray = None,
+    y_holdout: np.ndarray = None
+) -> dict:
     """Train feed-forward neural network."""
     print("\n" + "="*60)
     print("FEED-FORWARD NEURAL NETWORK")
@@ -241,9 +266,15 @@ def train_feedforward_nn(X: np.ndarray, y: np.ndarray) -> dict:
     # Sample for speed
     if len(X) > 100000:
         idx = np.random.choice(len(X), 100000, replace=False)
-        X, y = X[idx], y[idx]
+        X, y, groups = X[idx], y[idx], groups[idx]
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    if X_holdout is not None and y_holdout is not None and len(X_holdout) > 0:
+        X_train, y_train = X, y
+        X_test, y_test = X_holdout, y_holdout
+    else:
+        splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        train_idx, test_idx = next(splitter.split(X, y, groups))
+        X_train, X_test, y_train, y_test = X[train_idx], X[test_idx], y[train_idx], y[test_idx]
     
     # Convert to tensors
     X_train_t = torch.FloatTensor(X_train).to(device)
@@ -317,13 +348,25 @@ def train_feedforward_nn(X: np.ndarray, y: np.ndarray) -> dict:
     }
 
 
-def train_lstm(X: np.ndarray, y: np.ndarray) -> dict:
+def train_lstm(
+    X: np.ndarray,
+    y: np.ndarray,
+    groups: np.ndarray,
+    X_holdout: np.ndarray = None,
+    y_holdout: np.ndarray = None
+) -> dict:
     """Train LSTM for sequence prediction."""
     print("\n" + "="*60)
     print("LSTM SEQUENCE MODEL")
     print("="*60)
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    if X_holdout is not None and y_holdout is not None and len(X_holdout) > 0:
+        X_train, y_train = X, y
+        X_test, y_test = X_holdout, y_holdout
+    else:
+        splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        train_idx, test_idx = next(splitter.split(X, y, groups))
+        X_train, X_test, y_train, y_test = X[train_idx], X[test_idx], y[train_idx], y[test_idx]
     
     # Convert to tensors
     X_train_t = torch.FloatTensor(X_train).to(device)
@@ -395,13 +438,25 @@ def train_lstm(X: np.ndarray, y: np.ndarray) -> dict:
     }
 
 
-def train_gru(X: np.ndarray, y: np.ndarray) -> dict:
+def train_gru(
+    X: np.ndarray,
+    y: np.ndarray,
+    groups: np.ndarray,
+    X_holdout: np.ndarray = None,
+    y_holdout: np.ndarray = None
+) -> dict:
     """Train GRU for sequence prediction."""
     print("\n" + "="*60)
     print("GRU SEQUENCE MODEL")
     print("="*60)
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    if X_holdout is not None and y_holdout is not None and len(X_holdout) > 0:
+        X_train, y_train = X, y
+        X_test, y_test = X_holdout, y_holdout
+    else:
+        splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        train_idx, test_idx = next(splitter.split(X, y, groups))
+        X_train, X_test, y_train, y_test = X[train_idx], X[test_idx], y[train_idx], y[test_idx]
     
     X_train_t = torch.FloatTensor(X_train).to(device)
     y_train_t = torch.FloatTensor(y_train).reshape(-1, 1).to(device)
@@ -479,19 +534,32 @@ def main():
         print("ERROR: Not enough data!")
         return
     
+    train_df, holdout_df, holdout_info = split_holdout(passes_df)
+    if holdout_info.get("enabled"):
+        print("\n  Holdout Split:")
+        print(f"    Rule: competition contains '{holdout_info['competition_contains']}', season contains '{holdout_info['season_contains']}'")
+        print(f"    Holdout passes: {holdout_info['holdout_size']:,} from {holdout_info['holdout_matches']} matches")
+        print(f"    Train passes: {holdout_info['train_size']:,}")
+    
     # 1. Feed-Forward NN
-    X, y, scaler, feature_cols = prepare_features(passes_df)
-    ff_results = train_feedforward_nn(X, y)
+    X, y, scaler, feature_cols, groups = prepare_features(train_df)
+    X_hold, y_hold = None, None
+    if holdout_df is not None and not holdout_df.empty:
+        X_hold, y_hold, _, _, _ = prepare_features(holdout_df, scaler=scaler)
+    ff_results = train_feedforward_nn(X, y, groups, X_hold, y_hold)
     
     # 2. LSTM
     print("\n  Preparing sequences for LSTM/GRU...")
-    X_seq, y_seq, seq_scaler = prepare_sequences(passes_df, seq_length=5)
+    X_seq, y_seq, seq_scaler, seq_groups = prepare_sequences(train_df, seq_length=5)
     print(f"  Created {len(X_seq):,} sequences")
+    X_seq_hold, y_seq_hold = None, None
+    if holdout_df is not None and not holdout_df.empty:
+        X_seq_hold, y_seq_hold, _, _ = prepare_sequences(holdout_df, seq_length=5, scaler=seq_scaler)
     
-    lstm_results = train_lstm(X_seq, y_seq)
+    lstm_results = train_lstm(X_seq, y_seq, seq_groups, X_seq_hold, y_seq_hold)
     
     # 3. GRU
-    gru_results = train_gru(X_seq, y_seq)
+    gru_results = train_gru(X_seq, y_seq, seq_groups, X_seq_hold, y_seq_hold)
     
     # Save models
     models_dir = 'backend/models/trained'

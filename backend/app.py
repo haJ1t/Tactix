@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from models import init_db
 from api.match_routes import match_bp
 from api.analysis_routes import analysis_bp
+from api.report_routes import reports_bp
 from api.team_player_routes import team_bp, player_bp
 from config import config as app_config
 
@@ -36,6 +37,7 @@ def create_app(config_name: str = 'development'):
     # Register blueprints
     app.register_blueprint(match_bp)
     app.register_blueprint(analysis_bp)
+    app.register_blueprint(reports_bp)
     app.register_blueprint(team_bp)
     app.register_blueprint(player_bp)
     
@@ -58,6 +60,7 @@ def create_app(config_name: str = 'development'):
                 'teams': '/api/teams',
                 'players': '/api/players',
                 'analysis': '/api/analysis/<match_id>',
+                'reports': '/api/reports',
                 'health': '/api/health'
             }
         })

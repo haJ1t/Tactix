@@ -144,11 +144,21 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                         team_id=event_data.get('team', {}).get('id'),
                         player_id=event_data.get('player', {}).get('id'),
                         event_type=event_type,
+                        event_index=event_data.get('index'),
                         minute=event_data.get('minute', 0),
                         second=event_data.get('second', 0),
                         period=event_data.get('period', 1),
+                        duration=event_data.get('duration'),
                         location_x=location[0] if location else None,
-                        location_y=location[1] if len(location) > 1 else None
+                        location_y=location[1] if len(location) > 1 else None,
+                        possession_id=event_data.get('possession'),
+                        possession_team_id=event_data.get('possession_team', {}).get('id'),
+                        play_pattern=event_data.get('play_pattern', {}).get('name'),
+                        position_name=event_data.get('position', {}).get('name'),
+                        under_pressure=bool(event_data.get('under_pressure', False)),
+                        outcome_name=event_data.get('shot', {}).get('outcome', {}).get('name'),
+                        shot_outcome=event_data.get('shot', {}).get('outcome', {}).get('name'),
+                        is_goal=event_data.get('shot', {}).get('outcome', {}).get('name') == 'Goal'
                     )
                     db.add(event)
                     
@@ -167,7 +177,13 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                             end_location_x=end_location[0] if end_location else None,
                             end_location_y=end_location[1] if len(end_location) > 1 else None,
                             pass_outcome=pass_data.get('outcome', {}).get('name') if 'outcome' in pass_data else None,
-                            pass_type=pass_data.get('type', {}).get('name') if 'type' in pass_data else None
+                            pass_type=pass_data.get('type', {}).get('name') if 'type' in pass_data else None,
+                            body_part=pass_data.get('body_part', {}).get('name') if 'body_part' in pass_data else None,
+                            technique=pass_data.get('technique', {}).get('name') if 'technique' in pass_data else None,
+                            is_cross=bool(pass_data.get('cross', False)),
+                            is_switch=bool(pass_data.get('switch', False)),
+                            is_through_ball=bool(pass_data.get('through_ball', False)),
+                            is_cut_back=bool(pass_data.get('cut_back', False))
                         )
                         db.add(pass_event)
                         pass_count += 1
@@ -185,6 +201,16 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                             'end_location_y': end_location[1] if len(end_location) > 1 else 40,
                             'pass_outcome': pass_data.get('outcome', {}).get('name') if 'outcome' in pass_data else 'Complete',
                             'pass_length': pass_data.get('length', 10),
+                            'pass_type': pass_data.get('type', {}).get('name'),
+                            'pass_height': pass_data.get('height', {}).get('name'),
+                            'body_part': pass_data.get('body_part', {}).get('name'),
+                            'technique': pass_data.get('technique', {}).get('name') if 'technique' in pass_data else None,
+                            'is_cross': bool(pass_data.get('cross', False)),
+                            'is_switch': bool(pass_data.get('switch', False)),
+                            'is_through_ball': bool(pass_data.get('through_ball', False)),
+                            'is_cut_back': bool(pass_data.get('cut_back', False)),
+                            'competition': match_info.get('competition', {}).get('competition_name', 'La Liga'),
+                            'season': match_info.get('season', {}).get('season_name', '2020/2021'),
                             'minute': event_data.get('minute', 0),
                             'period': event_data.get('period', 1),
                             'event_type': 'Pass'

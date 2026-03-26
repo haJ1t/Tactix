@@ -68,10 +68,8 @@ statsbomb_data/
 # IDEs
 .idea/
 .vscode/
-.claude/
 *.swp
 *.swo
 
 # Project Specific
 backend/instance/
-.gemini/

@@ -1,4 +1,9 @@
 """
+Legacy cross-validation analysis for pre-enriched ML models.
+
+Superseded by `scripts/cross_validate_runtime_models.py` for the current
+runtime-ready enriched pass and tactical pipelines.
+
 Comprehensive Cross-Validation Analysis for ML Models.
 
 Includes:
@@ -14,13 +19,15 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 from sklearn.model_selection import (
-    StratifiedKFold, 
+    GroupKFold,
     cross_val_score, 
     cross_val_predict,
     learning_curve
 )
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 from sklearn.metrics import (
     accuracy_score, 
     precision_score, 
@@ -39,9 +46,11 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.models import SessionLocal, init_db
 from backend.models.event import Event
+from backend.models.match import Match
 from backend.models.pass_event import PassEvent
 from backend.services.network_builder import NetworkBuilder
 from backend.services.ml.tactical_classifier import TacticalPatternClassifier
+from backend.services.ml.holdout_utils import split_holdout
 
 
 def get_all_passes_from_db():
@@ -49,7 +58,7 @@ def get_all_passes_from_db():
     print("Loading all passes from database...")
     db = SessionLocal()
     try:
-        passes = db.query(PassEvent).join(Event).all()
+        passes = db.query(PassEvent).join(Event).join(Match, Event.match_id == Match.match_id).all()
         
         passes_data = []
         for p in passes:
@@ -57,6 +66,7 @@ def get_all_passes_from_db():
             if event is None:
                 continue
                 
+            match = event.match
             passes_data.append({
                 'match_id': event.match_id,
                 'passer_id': p.passer_id,
@@ -68,6 +78,11 @@ def get_all_passes_from_db():
                 'end_location_y': p.end_location_y or 40,
                 'pass_length': p.pass_length,
                 'pass_outcome': p.pass_outcome,
+                'pass_type': p.pass_type,
+                'pass_height': p.pass_height,
+                'body_part': p.body_part,
+                'competition': match.competition if match else None,
+                'season': match.season if match else None,
             })
         
         print(f"  Loaded {len(passes_data):,} passes")
@@ -76,14 +91,14 @@ def get_all_passes_from_db():
         db.close()
 
 
-def cross_validate_pass_difficulty(passes_df: pd.DataFrame) -> dict:
+def cross_validate_pass_difficulty(passes_df: pd.DataFrame, holdout_df: pd.DataFrame = None) -> dict:
     """Comprehensive cross-validation for Pass Difficulty Model."""
     print("\n" + "="*60)
     print("PASS DIFFICULTY MODEL - CROSS-VALIDATION ANALYSIS")
     print("="*60)
     
     # Prepare features
-    df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y', 'recipient_id'])
+    df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
     
     # Calculate pass length
     df['pass_length'] = np.sqrt(
@@ -100,11 +115,14 @@ def cross_validate_pass_difficulty(passes_df: pd.DataFrame) -> dict:
     
     feature_cols = ['location_x', 'location_y', 'end_location_x', 'end_location_y', 
                     'pass_length', 'dx', 'dy', 'is_forward', 'is_in_final_third', 'is_long_pass']
+    cat_cols = ['pass_type', 'pass_height', 'body_part']
     
-    X = df[feature_cols].fillna(0)
+    X = df[feature_cols + cat_cols].copy()
+    X[cat_cols] = X[cat_cols].fillna('Unknown')
     y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int)
+    groups = df['match_id'].values
     
-    print(f"\n  Dataset: {len(X):,} samples, {len(feature_cols)} features")
+    print(f"\n  Dataset: {len(X):,} samples, {len(feature_cols)} numeric + {len(cat_cols)} categorical features")
     print(f"  Class distribution: {y.sum():,} successful ({y.mean():.1%}), {(~y.astype(bool)).sum():,} failed ({1-y.mean():.1%})")
     
     # Sample for CV (100k max for speed)
@@ -112,23 +130,31 @@ def cross_validate_pass_difficulty(passes_df: pd.DataFrame) -> dict:
         sample_idx = np.random.choice(len(X), 100000, replace=False)
         X = X.iloc[sample_idx]
         y = y.iloc[sample_idx]
+        groups = groups[sample_idx]
         print(f"  Sampled to {len(X):,} for faster CV")
     
     # Load best parameters from tuning
     best_params = {'max_depth': 15, 'min_samples_leaf': 2, 'min_samples_split': 10, 'n_estimators': 200}
     
-    model = RandomForestClassifier(**best_params, random_state=42, n_jobs=-1)
+    preprocessor = ColumnTransformer(
+        [('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)],
+        remainder='passthrough'
+    )
+    model = Pipeline([
+        ('preprocess', preprocessor),
+        ('model', RandomForestClassifier(**best_params, random_state=42, n_jobs=-1))
+    ])
     
     # Stratified K-Fold
     n_folds = 10
-    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+    gkf = GroupKFold(n_splits=n_folds)
     
     print(f"\n  Running {n_folds}-Fold Stratified Cross-Validation...")
     
     # Collect metrics per fold
     fold_metrics = []
     
-    for fold, (train_idx, test_idx) in enumerate(skf.split(X, y)):
+    for fold, (train_idx, test_idx) in enumerate(gkf.split(X, y, groups)):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
         
@@ -160,36 +186,76 @@ def cross_validate_pass_difficulty(passes_df: pd.DataFrame) -> dict:
     print(f"  ║ {'Std':<6} {metrics_df['accuracy'].std():>10.2%}   {metrics_df['precision'].std():>10.2%}   {metrics_df['recall'].std():>10.2%}   {metrics_df['f1'].std():>10.2%} ║")
     print(f"  ╚{'═'*58}╝")
     
-    # Feature importance
+    # Feature importance (fit on full train)
     print("\n  Feature Importance (Top 5):")
     model.fit(X, y)
-    importance = pd.DataFrame({
-        'feature': feature_cols,
-        'importance': model.feature_importances_
-    }).sort_values('importance', ascending=False)
+    clf = model.named_steps['model']
+    pre = model.named_steps['preprocess']
+    if hasattr(clf, 'feature_importances_'):
+        feature_names = pre.get_feature_names_out()
+        importance = pd.DataFrame({
+            'feature': feature_names,
+            'importance': clf.feature_importances_
+        }).sort_values('importance', ascending=False)
+    else:
+        importance = pd.DataFrame(columns=['feature', 'importance'])
     
-    for i, row in importance.head(5).iterrows():
-        bar = '█' * int(row['importance'] * 30)
-        print(f"    {row['feature']:<20} {row['importance']:.3f} {bar}")
+    if not importance.empty:
+        for i, row in importance.head(5).iterrows():
+            bar = '█' * int(row['importance'] * 30)
+            print(f"    {row['feature']:<20} {row['importance']:.3f} {bar}")
     
-    # Confusion Matrix
-    print("\n  Confusion Matrix:")
-    y_pred_all = cross_val_predict(model, X, y, cv=skf)
+    # Confusion Matrix (CV)
+    print("\n  Confusion Matrix (CV):")
+    y_pred_all = cross_val_predict(model, X, y, cv=gkf, groups=groups)
     cm = confusion_matrix(y, y_pred_all)
     print(f"                  Predicted")
     print(f"                  Fail   Success")
     print(f"    Actual Fail   {cm[0,0]:>6}  {cm[0,1]:>6}")
     print(f"    Actual Success{cm[1,0]:>6}  {cm[1,1]:>6}")
+
+    holdout_metrics = None
+    if holdout_df is not None and not holdout_df.empty:
+        df_hold = holdout_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
+        if not df_hold.empty:
+            df_hold['pass_length'] = np.sqrt(
+                (df_hold['end_location_x'] - df_hold['location_x'])**2 + 
+                (df_hold['end_location_y'] - df_hold['location_y'])**2
+            )
+            df_hold['dx'] = df_hold['end_location_x'] - df_hold['location_x']
+            df_hold['dy'] = df_hold['end_location_y'] - df_hold['location_y']
+            df_hold['is_forward'] = (df_hold['dx'] > 0).astype(int)
+            df_hold['is_in_final_third'] = (df_hold['location_x'] > 80).astype(int)
+            df_hold['is_long_pass'] = (df_hold['pass_length'] > 30).astype(int)
+
+            X_hold = df_hold[feature_cols + cat_cols].copy()
+            X_hold[cat_cols] = X_hold[cat_cols].fillna('Unknown')
+            y_hold = (df_hold['pass_outcome'].isna() | (df_hold['pass_outcome'] == 'Complete')).astype(int)
+
+            y_hold_pred = model.predict(X_hold)
+            holdout_metrics = {
+                'accuracy': accuracy_score(y_hold, y_hold_pred),
+                'precision': precision_score(y_hold, y_hold_pred, zero_division=0),
+                'recall': recall_score(y_hold, y_hold_pred, zero_division=0),
+                'f1': f1_score(y_hold, y_hold_pred, zero_division=0)
+            }
+
+            print("\n  Holdout Performance (Fixed Split):")
+            print(f"    Accuracy: {holdout_metrics['accuracy']:.2%}")
+            print(f"    Precision: {holdout_metrics['precision']:.2%}")
+            print(f"    Recall: {holdout_metrics['recall']:.2%}")
+            print(f"    F1: {holdout_metrics['f1']:.2%}")
     
     return {
         'mean_accuracy': metrics_df['accuracy'].mean(),
         'std_accuracy': metrics_df['accuracy'].std(),
         'mean_f1': metrics_df['f1'].mean(),
-        'feature_importance': importance.to_dict('records')
+        'feature_importance': importance.to_dict('records'),
+        'holdout': holdout_metrics
     }
 
 
-def cross_validate_tactical_classifier(passes_df: pd.DataFrame) -> dict:
+def cross_validate_tactical_classifier(passes_df: pd.DataFrame, holdout_df: pd.DataFrame = None) -> dict:
     """Comprehensive cross-validation for Tactical Pattern Classifier."""
     print("\n" + "="*60)
     print("TACTICAL CLASSIFIER - CROSS-VALIDATION ANALYSIS")
@@ -205,39 +271,46 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame) -> dict:
     if 'recipient_name' not in passes_df.columns:
         passes_df['recipient_name'] = passes_df['recipient_id'].apply(lambda x: f'Player {x}' if pd.notna(x) else None)
     
-    features_list = []
-    labels = []
-    
-    grouped = passes_df.groupby(['match_id', 'team_id'])
-    
-    for (match_id, team_id), team_passes in grouped:
-        mask = (
-            team_passes['recipient_id'].notna() & 
-            (team_passes['pass_outcome'].isna() | (team_passes['pass_outcome'] == 'Complete'))
-        )
-        successful = team_passes[mask].copy()
+    def build_features(df: pd.DataFrame):
+        features_list = []
+        labels = []
+        groups = []
         
-        if len(successful) < 10:
-            continue
+        grouped = df.groupby(['match_id', 'team_id'])
         
-        try:
-            G = builder.build_pass_network(successful)
-            if G.number_of_nodes() < 5:
+        for (match_id, team_id), team_passes in grouped:
+            mask = (
+                team_passes['recipient_id'].notna() & 
+                (team_passes['pass_outcome'].isna() | (team_passes['pass_outcome'] == 'Complete'))
+            )
+            successful = team_passes[mask].copy()
+            
+            if len(successful) < 10:
                 continue
             
-            node_positions = {}
-            for node in G.nodes():
-                node_data = G.nodes[node]
-                node_positions[node] = (node_data.get('x', 60), node_data.get('y', 40))
-            
-            features = classifier.extract_network_features(G, node_positions)
-            patterns = classifier.detect_patterns_rule_based(features)
-            
-            if patterns:
-                features_list.append(features)
-                labels.append(patterns[0]['pattern_type'])
-        except:
-            continue
+            try:
+                G = builder.build_pass_network(successful)
+                if G.number_of_nodes() < 5:
+                    continue
+                
+                node_positions = {}
+                for node in G.nodes():
+                    node_data = G.nodes[node]
+                    node_positions[node] = (node_data.get('x', 60), node_data.get('y', 40))
+                
+                features = classifier.extract_network_features(G, node_positions)
+                patterns = classifier.detect_patterns_rule_based(features)
+                
+                if patterns:
+                    features_list.append(features)
+                    labels.append(patterns[0]['pattern_type'])
+                    groups.append(match_id)
+            except:
+                continue
+        
+        return features_list, labels, groups
+    
+    features_list, labels, groups = build_features(passes_df)
     
     print(f"  Built {len(features_list)} feature samples")
     
@@ -254,7 +327,7 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame) -> dict:
         count = (y == i).sum()
         print(f"    {name}: {count} samples ({count/len(y):.1%})")
     
-    # Scale features
+    # Scale features (fit on train)
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     
@@ -264,13 +337,13 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame) -> dict:
     
     # Stratified K-Fold
     n_folds = 10
-    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+    gkf = GroupKFold(n_splits=n_folds)
     
     print(f"\n  Running {n_folds}-Fold Stratified Cross-Validation...")
     
     fold_metrics = []
     
-    for fold, (train_idx, test_idx) in enumerate(skf.split(X_scaled, y)):
+    for fold, (train_idx, test_idx) in enumerate(gkf.split(X_scaled, y, groups)):
         X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
         
@@ -315,7 +388,7 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame) -> dict:
     
     # Per-class metrics
     print("\n  Per-Class Performance:")
-    y_pred_all = cross_val_predict(model, X_scaled, y, cv=skf)
+    y_pred_all = cross_val_predict(model, X_scaled, y, cv=gkf, groups=groups)
     
     print(f"    {'Class':<30} {'Precision':<12} {'Recall':<12} {'F1':<12} {'Support':<8}")
     print(f"    {'-'*72}")
@@ -328,12 +401,38 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame) -> dict:
             f1 = f1_score(y == i, y_pred_all == i, zero_division=0)
             print(f"    {class_name:<30} {prec:>10.2%}   {rec:>10.2%}   {f1:>10.2%}   {mask.sum():>6}")
     
+    holdout_metrics = None
+    if holdout_df is not None and not holdout_df.empty:
+        holdout_features, holdout_labels, _ = build_features(holdout_df)
+        if holdout_features:
+            X_hold = pd.DataFrame(holdout_features)
+            X_hold_scaled = scaler.transform(X_hold)
+            y_hold = le.transform(holdout_labels)
+            
+            # Train on full train set then evaluate holdout
+            model.fit(X_scaled, y)
+            y_hold_pred = model.predict(X_hold_scaled)
+            
+            holdout_metrics = {
+                'accuracy': accuracy_score(y_hold, y_hold_pred),
+                'precision': precision_score(y_hold, y_hold_pred, average='weighted', zero_division=0),
+                'recall': recall_score(y_hold, y_hold_pred, average='weighted', zero_division=0),
+                'f1': f1_score(y_hold, y_hold_pred, average='weighted', zero_division=0)
+            }
+            
+            print("\n  Holdout Performance (Fixed Split):")
+            print(f"    Accuracy: {holdout_metrics['accuracy']:.2%}")
+            print(f"    Precision: {holdout_metrics['precision']:.2%}")
+            print(f"    Recall: {holdout_metrics['recall']:.2%}")
+            print(f"    F1: {holdout_metrics['f1']:.2%}")
+    
     return {
         'mean_accuracy': metrics_df['accuracy'].mean(),
         'std_accuracy': metrics_df['accuracy'].std(),
         'mean_f1': metrics_df['f1'].mean(),
         'class_names': list(class_names),
-        'feature_importance': importance.head(10).to_dict('records')
+        'feature_importance': importance.head(10).to_dict('records'),
+        'holdout': holdout_metrics
     }
 
 
@@ -351,11 +450,18 @@ def main():
         print("ERROR: Not enough data!")
         return
     
+    train_df, holdout_df, holdout_info = split_holdout(passes_df)
+    if holdout_info.get("enabled"):
+        print("\n  Holdout Split:")
+        print(f"    Rule: competition contains '{holdout_info['competition_contains']}', season contains '{holdout_info['season_contains']}'")
+        print(f"    Holdout passes: {holdout_info['holdout_size']:,} from {holdout_info['holdout_matches']} matches")
+        print(f"    Train passes: {holdout_info['train_size']:,}")
+    
     # Cross-validate Pass Difficulty Model
-    pass_results = cross_validate_pass_difficulty(passes_df)
+    pass_results = cross_validate_pass_difficulty(train_df, holdout_df)
     
     # Cross-validate Tactical Classifier
-    tactical_results = cross_validate_tactical_classifier(passes_df)
+    tactical_results = cross_validate_tactical_classifier(train_df, holdout_df)
     
     # Summary
     print("\n" + "="*60)

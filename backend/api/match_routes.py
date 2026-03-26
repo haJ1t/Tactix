@@ -1,6 +1,8 @@
 """
 Match-related API routes
 """
+from __future__ import annotations
+
 from flask import Blueprint, jsonify, request
 from sqlalchemy.orm import Session
 from models import SessionLocal
@@ -16,9 +18,11 @@ from services.metrics_calculator import MetricsCalculator
 from services.pattern_detector import PatternDetector
 from services.counter_tactic_generator import CounterTacticGenerator
 from services.ml.analysis_pipeline import MLAnalysisPipeline
+from services.ml.shot_metrics import calculate_shot_summary
 import pandas as pd
 
 match_bp = Blueprint('matches', __name__, url_prefix='/api/matches')
+_ml_pipeline_instance = None
 
 
 def get_db():
@@ -29,6 +33,175 @@ def get_db():
     except:
         db.close()
         raise
+
+
+def get_ml_pipeline():
+    """Return a cached ML pipeline instance for this process."""
+    global _ml_pipeline_instance
+    if _ml_pipeline_instance is None:
+        _ml_pipeline_instance = MLAnalysisPipeline()
+    return _ml_pipeline_instance
+
+
+def build_ml_analysis_payload(
+    db: Session,
+    match: Match,
+    team_id: int | None = None,
+    include_network: bool = False
+) -> dict:
+    """Build the ML analysis snapshot used by routes and PDF generation."""
+    team_ids = [team_id] if team_id else [match.home_team_id, match.away_team_id]
+    ml_pipeline = get_ml_pipeline()
+    results = {}
+
+    for tid in team_ids:
+        if tid is None:
+            continue
+
+        team = db.query(Team).filter(Team.team_id == tid).first()
+        team_name = team.team_name if team else f'Team {tid}'
+
+        shots = db.query(Event).filter(
+            Event.match_id == match.match_id,
+            Event.team_id == tid,
+            Event.event_type == 'Shot'
+        ).all()
+        shots_df = pd.DataFrame(
+            [
+                {
+                    'location_x': shot.location_x,
+                    'location_y': shot.location_y,
+                    'minute': shot.minute,
+                    'second': shot.second,
+                }
+                for shot in shots
+            ]
+        )
+        shot_summary = calculate_shot_summary(shots_df)
+
+        passes = db.query(PassEvent).join(Event).filter(
+            Event.match_id == match.match_id,
+            Event.team_id == tid
+        ).all()
+
+        if not passes:
+            results[team_name] = {
+                'error': 'No passes found',
+                'shot_summary': shot_summary,
+            }
+            continue
+
+        passes_data = []
+        for pass_event in passes:
+            event = pass_event.event
+            passer = pass_event.passer
+            recipient = pass_event.recipient
+            final_goal_diff = 0
+            if tid == match.home_team_id:
+                final_goal_diff = (match.home_score or 0) - (match.away_score or 0)
+            elif tid == match.away_team_id:
+                final_goal_diff = (match.away_score or 0) - (match.home_score or 0)
+
+            passes_data.append({
+                'match_id': match.match_id,
+                'pass_id': pass_event.pass_id,
+                'event_id': pass_event.event_id,
+                'passer_id': pass_event.passer_id,
+                'passer_name': passer.player_name if passer else f'Player {pass_event.passer_id}',
+                'player_id': pass_event.passer_id,
+                'player_name': passer.player_name if passer else f'Player {pass_event.passer_id}',
+                'recipient_id': pass_event.recipient_id,
+                'recipient_name': recipient.player_name if recipient else f'Player {pass_event.recipient_id}' if pass_event.recipient_id else None,
+                'location_x': event.location_x if event else 60,
+                'location_y': event.location_y if event else 40,
+                'end_location_x': pass_event.end_location_x or 60,
+                'end_location_y': pass_event.end_location_y or 40,
+                'pass_outcome': pass_event.pass_outcome,
+                'pass_length': pass_event.pass_length,
+                'pass_angle': pass_event.pass_angle,
+                'team_id': tid,
+                'minute': event.minute if event else 0,
+                'second': event.second if event else 0,
+                'period': event.period if event else 1,
+                'event_type': 'Pass',
+                'event_index': event.event_index if event else None,
+                'possession_id': event.possession_id if event else None,
+                'play_pattern': event.play_pattern if event else None,
+                'position_name': (event.position_name if event and event.position_name else passer.position if passer else None),
+                'under_pressure': event.under_pressure if event else False,
+                'competition': match.competition,
+                'season': match.season,
+                'final_goal_diff': final_goal_diff,
+                'technique': pass_event.technique,
+                'is_cross': pass_event.is_cross,
+                'is_switch': pass_event.is_switch,
+                'is_through_ball': pass_event.is_through_ball,
+                'is_cut_back': pass_event.is_cut_back,
+            })
+
+        passes_df = pd.DataFrame(passes_data)
+
+        player_info = {}
+        players = db.query(Player).filter(Player.team_id == tid).all()
+        for player in players:
+            player_info[player.player_id] = {
+                'name': player.player_name,
+                'jersey': player.jersey_number,
+                'position': player.position,
+            }
+
+        analysis = ml_pipeline.analyze_passes(passes_df, player_info)
+
+        db.query(NetworkMetrics).filter(
+            NetworkMetrics.match_id == match.match_id,
+            NetworkMetrics.team_id == tid
+        ).delete()
+
+        for player_metrics in analysis['player_metrics']:
+            player_id = player_metrics.get('player_id')
+            if not player_id:
+                continue
+            metric = NetworkMetrics(
+                match_id=match.match_id,
+                team_id=tid,
+                player_id=player_id,
+                degree_centrality=player_metrics.get('degree_centrality', 0),
+                in_degree_centrality=player_metrics.get('in_degree_centrality', 0),
+                out_degree_centrality=player_metrics.get('out_degree_centrality', 0),
+                betweenness_centrality=player_metrics.get('betweenness_centrality', 0),
+                closeness_centrality=player_metrics.get('closeness_centrality', 0),
+                pagerank=player_metrics.get('pagerank', 0),
+                clustering_coefficient=player_metrics.get('clustering_coefficient', 0),
+                in_degree=player_metrics.get('in_degree', 0),
+                out_degree=player_metrics.get('out_degree', 0),
+                avg_x=player_metrics.get('avg_x', 60),
+                avg_y=player_metrics.get('avg_y', 40),
+            )
+            db.add(metric)
+
+        db.commit()
+
+        team_result = {
+            'network_statistics': analysis['network_statistics'],
+            'player_metrics': analysis['player_metrics'],
+            'patterns': analysis['patterns'],
+            'counter_tactics': analysis['counter_tactics'],
+            'vaep_summary': analysis['vaep_summary'],
+            'network_features': analysis['network_features'],
+            'summary': analysis['summary'],
+            'ml_info': analysis['ml_info'],
+            'shot_summary': shot_summary,
+        }
+        if include_network:
+            team_result['network'] = analysis.get('network', {'nodes': [], 'edges': [], 'positions': {}})
+
+        results[team_name] = team_result
+
+    return {
+        'match_id': match.match_id,
+        'analysis': results,
+        'ml_enhanced': True,
+    }
 
 
 @match_bp.route('', methods=['GET'])
@@ -174,14 +347,35 @@ def analyze_match(match_id: int):
             team = db.query(Team).filter(Team.team_id == tid).first()
             team_name = team.team_name if team else f'Team {tid}'
             
+            # Get shot events for this team
+            shots = db.query(Event).filter(
+                Event.match_id == match_id,
+                Event.team_id == tid,
+                Event.event_type == 'Shot'
+            ).all()
+            shots_data = [
+                {
+                    'location_x': s.location_x,
+                    'location_y': s.location_y,
+                    'minute': s.minute,
+                    'second': s.second
+                }
+                for s in shots
+            ]
+            shots_df = pd.DataFrame(shots_data)
+            shot_summary = calculate_shot_summary(shots_df)
+
             # Get passes for this team
             passes = db.query(PassEvent).join(Event).filter(
                 Event.match_id == match_id,
                 Event.team_id == tid
             ).all()
-            
+
             if not passes:
-                results[team_name] = {'error': 'No passes found'}
+                results[team_name] = {
+                    'error': 'No passes found',
+                    'shot_summary': shot_summary
+                }
                 continue
             
             # Convert to DataFrame
@@ -285,120 +479,6 @@ def analyze_match_ml(match_id: int):
         match = db.query(Match).filter(Match.match_id == match_id).first()
         if not match:
             return jsonify({'error': 'Match not found'}), 404
-        
-        # Get teams to analyze
-        team_ids = [team_id] if team_id else [match.home_team_id, match.away_team_id]
-        
-        # Initialize ML pipeline
-        ml_pipeline = MLAnalysisPipeline()
-        
-        results = {}
-        
-        for tid in team_ids:
-            if tid is None:
-                continue
-                
-            team = db.query(Team).filter(Team.team_id == tid).first()
-            team_name = team.team_name if team else f'Team {tid}'
-            
-            # Get passes for this team
-            passes = db.query(PassEvent).join(Event).filter(
-                Event.match_id == match_id,
-                Event.team_id == tid
-            ).all()
-            
-            if not passes:
-                results[team_name] = {'error': 'No passes found'}
-                continue
-            
-            # Convert to DataFrame with all necessary columns
-            passes_data = []
-            for p in passes:
-                event = p.event
-                passer = p.passer
-                recipient = p.recipient
-                
-                passes_data.append({
-                    'pass_id': p.pass_id,
-                    'event_id': p.event_id,
-                    'passer_id': p.passer_id,
-                    'passer_name': passer.player_name if passer else f'Player {p.passer_id}',
-                    'player_id': p.passer_id,
-                    'player_name': passer.player_name if passer else f'Player {p.passer_id}',
-                    'recipient_id': p.recipient_id,
-                    'recipient_name': recipient.player_name if recipient else f'Player {p.recipient_id}' if p.recipient_id else None,
-                    'location_x': event.location_x if event else 60,
-                    'location_y': event.location_y if event else 40,
-                    'end_location_x': p.end_location_x or 60,
-                    'end_location_y': p.end_location_y or 40,
-                    'pass_outcome': p.pass_outcome,
-                    'pass_length': p.pass_length,
-                    'pass_angle': p.pass_angle,
-                    'team_id': tid,
-                    'minute': event.minute if event else 0,
-                    'period': event.period if event else 1,
-                    'event_type': 'Pass'
-                })
-            
-            df = pd.DataFrame(passes_data)
-            
-            # Build player info dict
-            player_info = {}
-            players = db.query(Player).filter(Player.team_id == tid).all()
-            for player in players:
-                player_info[player.player_id] = {
-                    'name': player.player_name,
-                    'jersey': player.jersey_number,
-                    'position': player.position
-                }
-            
-            # Run ML analysis
-            analysis = ml_pipeline.analyze_passes(df, player_info)
-            
-            # Store metrics in database
-            db.query(NetworkMetrics).filter(
-                NetworkMetrics.match_id == match_id,
-                NetworkMetrics.team_id == tid
-            ).delete()
-            
-            for player_metrics in analysis['player_metrics']:
-                player_id = player_metrics.get('player_id')
-                if player_id:
-                    metric = NetworkMetrics(
-                        match_id=match_id,
-                        team_id=tid,
-                        player_id=player_id,
-                        degree_centrality=player_metrics.get('degree_centrality', 0),
-                        in_degree_centrality=player_metrics.get('in_degree_centrality', 0),
-                        out_degree_centrality=player_metrics.get('out_degree_centrality', 0),
-                        betweenness_centrality=player_metrics.get('betweenness_centrality', 0),
-                        closeness_centrality=player_metrics.get('closeness_centrality', 0),
-                        pagerank=player_metrics.get('pagerank', 0),
-                        clustering_coefficient=player_metrics.get('clustering_coefficient', 0),
-                        in_degree=player_metrics.get('in_degree', 0),
-                        out_degree=player_metrics.get('out_degree', 0),
-                        avg_x=player_metrics.get('avg_x', 60),
-                        avg_y=player_metrics.get('avg_y', 40),
-                    )
-                    db.add(metric)
-            
-            db.commit()
-            
-            results[team_name] = {
-                'network_statistics': analysis['network_statistics'],
-                'player_metrics': analysis['player_metrics'],
-                'patterns': analysis['patterns'],
-                'counter_tactics': analysis['counter_tactics'],
-                'vaep_summary': analysis['vaep_summary'],
-                'network_features': analysis['network_features'],
-                'summary': analysis['summary'],
-                'ml_info': analysis['ml_info']
-            }
-        
-        return jsonify({
-            'match_id': match_id,
-            'analysis': results,
-            'ml_enhanced': True
-        })
+        return jsonify(build_ml_analysis_payload(db, match, team_id=team_id))
     finally:
         db.close()

@@ -11,8 +11,11 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import StratifiedKFold, cross_val_score
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import GroupKFold, cross_val_score
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 import lightgbm as lgb
 import joblib
 import warnings
@@ -24,9 +27,11 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.models import SessionLocal, init_db
 from backend.models.event import Event
+from backend.models.match import Match
 from backend.models.pass_event import PassEvent
 from backend.services.network_builder import NetworkBuilder
 from backend.services.ml.tactical_classifier import TacticalPatternClassifier
+from backend.services.ml.holdout_utils import split_holdout
 
 
 def get_all_passes_from_db():
@@ -34,7 +39,7 @@ def get_all_passes_from_db():
     print("Loading all passes from database...")
     db = SessionLocal()
     try:
-        passes = db.query(PassEvent).join(Event).all()
+        passes = db.query(PassEvent).join(Event).join(Match, Event.match_id == Match.match_id).all()
         
         passes_data = []
         for p in passes:
@@ -42,6 +47,7 @@ def get_all_passes_from_db():
             if event is None:
                 continue
                 
+            match = event.match
             passes_data.append({
                 'match_id': event.match_id,
                 'event_id': p.event_id,
@@ -58,6 +64,8 @@ def get_all_passes_from_db():
                 'pass_type': p.pass_type,
                 'pass_height': p.pass_height,
                 'body_part': p.body_part,
+                'competition': match.competition if match else None,
+                'season': match.season if match else None,
                 'minute': event.minute,
                 'second': event.second,
                 'period': event.period,
@@ -260,7 +268,7 @@ def add_pass_characteristics(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def train_with_advanced_features(passes_df: pd.DataFrame) -> dict:
+def train_with_advanced_features(passes_df: pd.DataFrame, holdout_df: pd.DataFrame = None) -> dict:
     """Train model with all advanced features."""
     print("\n" + "="*60)
     print("TRAINING WITH ADVANCED FEATURES")
@@ -273,6 +281,15 @@ def train_with_advanced_features(passes_df: pd.DataFrame) -> dict:
     df = add_xg_chain_features(df)
     df = add_sequence_features(df)
     df = add_pass_characteristics(df)
+    
+    df_hold = None
+    if holdout_df is not None and not holdout_df.empty:
+        df_hold = holdout_df.copy()
+        df_hold = add_game_state_features(df_hold)
+        df_hold = add_pressure_features(df_hold)
+        df_hold = add_xg_chain_features(df_hold)
+        df_hold = add_sequence_features(df_hold)
+        df_hold = add_pass_characteristics(df_hold)
     
     # Define feature columns
     basic_features = ['location_x', 'location_y', 'end_location_x', 'end_location_y', 'pass_length']
@@ -308,6 +325,8 @@ def train_with_advanced_features(passes_df: pd.DataFrame) -> dict:
         'is_diagonal', 'is_switch_play'
     ]
     
+    cat_cols = ['pass_type', 'pass_height', 'body_part']
+    
     all_features = (basic_features + game_state_features + pressure_features + 
                     xg_features + sequence_features + pass_char_features)
     
@@ -318,83 +337,111 @@ def train_with_advanced_features(passes_df: pd.DataFrame) -> dict:
     print(f"    - xG Chain: {len(xg_features)}")
     print(f"    - Sequence: {len(sequence_features)}")
     print(f"    - Pass Characteristics: {len(pass_char_features)}")
+    print(f"    - Categorical: {len(cat_cols)}")
     
     # Filter to valid data
-    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y', 'recipient_id'])
-    
-    X = df[all_features].fillna(0).values
-    y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int).values
+    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
+    if df_hold is not None:
+        df_hold = df_hold.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
     
     # Sample for speed
-    if len(X) > 100000:
-        idx = np.random.choice(len(X), 100000, replace=False)
-        X, y = X[idx], y[idx]
+    if len(df) > 100000:
+        sample_idx = np.random.choice(len(df), 100000, replace=False)
+        df = df.iloc[sample_idx].copy()
     
-    print(f"\n  Samples: {len(X):,}")
+    y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int).values
+    groups = df['match_id'].values
+    
+    print(f"\n  Samples: {len(df):,}")
+    
+    def make_pipeline(model):
+        preprocessor = ColumnTransformer(
+            [('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)],
+            remainder='passthrough'
+        )
+        return Pipeline([('preprocess', preprocessor), ('model', model)])
     
     # Train with and without advanced features
-    model_basic = lgb.LGBMClassifier(n_estimators=200, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1)
-    model_advanced = lgb.LGBMClassifier(n_estimators=200, max_depth=8, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1)
+    model_basic = make_pipeline(lgb.LGBMClassifier(n_estimators=200, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1))
+    model_advanced = make_pipeline(lgb.LGBMClassifier(n_estimators=200, max_depth=8, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1))
     
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    gkf = GroupKFold(n_splits=5)
+    
+    def build_feature_df(feature_list):
+        X_df = df[feature_list + cat_cols].copy()
+        X_df[cat_cols] = X_df[cat_cols].fillna('Unknown')
+        return X_df
     
     # Basic features only
-    X_basic = df[basic_features + ['dx', 'dy', 'is_forward', 'is_long_pass']].fillna(0).values
-    if len(X_basic) > 100000:
-        X_basic = X_basic[idx]
+    X_basic = build_feature_df(basic_features + ['dx', 'dy', 'is_forward', 'is_long_pass'])
     
     print("\n  Comparing feature sets:")
     print(f"  {'Feature Set':<25} {'Accuracy':<12} {'F1 Score':<12}")
     print(f"  {'-'*49}")
     
     # Basic
-    acc_basic = cross_val_score(model_basic, X_basic, y, cv=skf, scoring='accuracy').mean()
-    f1_basic = cross_val_score(model_basic, X_basic, y, cv=skf, scoring='f1').mean()
+    acc_basic = cross_val_score(model_basic, X_basic, y, cv=gkf, groups=groups, scoring='accuracy').mean()
+    f1_basic = cross_val_score(model_basic, X_basic, y, cv=gkf, groups=groups, scoring='f1').mean()
     print(f"  {'Basic (10 features)':<25} {acc_basic:>10.2%}   {f1_basic:>10.2%}")
     
     # With Game State
-    X_game = df[basic_features + game_state_features + ['dx', 'dy', 'is_forward']].fillna(0).values
-    if len(X_game) > 100000:
-        X_game = X_game[idx]
-    acc_game = cross_val_score(model_advanced, X_game, y, cv=skf, scoring='accuracy').mean()
-    f1_game = cross_val_score(model_advanced, X_game, y, cv=skf, scoring='f1').mean()
+    X_game = build_feature_df(basic_features + game_state_features + ['dx', 'dy', 'is_forward'])
+    acc_game = cross_val_score(model_advanced, X_game, y, cv=gkf, groups=groups, scoring='accuracy').mean()
+    f1_game = cross_val_score(model_advanced, X_game, y, cv=gkf, groups=groups, scoring='f1').mean()
     print(f"  {'+ Game State':<25} {acc_game:>10.2%}   {f1_game:>10.2%}")
     
     # With Pressure
-    X_pressure = df[basic_features + game_state_features + pressure_features + ['dx', 'dy']].fillna(0).values
-    if len(X_pressure) > 100000:
-        X_pressure = X_pressure[idx]
-    acc_pressure = cross_val_score(model_advanced, X_pressure, y, cv=skf, scoring='accuracy').mean()
-    f1_pressure = cross_val_score(model_advanced, X_pressure, y, cv=skf, scoring='f1').mean()
+    X_pressure = build_feature_df(basic_features + game_state_features + pressure_features + ['dx', 'dy'])
+    acc_pressure = cross_val_score(model_advanced, X_pressure, y, cv=gkf, groups=groups, scoring='accuracy').mean()
+    f1_pressure = cross_val_score(model_advanced, X_pressure, y, cv=gkf, groups=groups, scoring='f1').mean()
     print(f"  {'+ Pressure Index':<25} {acc_pressure:>10.2%}   {f1_pressure:>10.2%}")
     
     # With xG Chain
-    X_xg = df[basic_features + game_state_features + pressure_features + xg_features].fillna(0).values
-    if len(X_xg) > 100000:
-        X_xg = X_xg[idx]
-    acc_xg = cross_val_score(model_advanced, X_xg, y, cv=skf, scoring='accuracy').mean()
-    f1_xg = cross_val_score(model_advanced, X_xg, y, cv=skf, scoring='f1').mean()
+    X_xg = build_feature_df(basic_features + game_state_features + pressure_features + xg_features)
+    acc_xg = cross_val_score(model_advanced, X_xg, y, cv=gkf, groups=groups, scoring='accuracy').mean()
+    f1_xg = cross_val_score(model_advanced, X_xg, y, cv=gkf, groups=groups, scoring='f1').mean()
     print(f"  {'+ xG Chain':<25} {acc_xg:>10.2%}   {f1_xg:>10.2%}")
     
     # Full (all features)
-    acc_full = cross_val_score(model_advanced, X, y, cv=skf, scoring='accuracy').mean()
-    f1_full = cross_val_score(model_advanced, X, y, cv=skf, scoring='f1').mean()
+    X_full = build_feature_df(all_features)
+    acc_full = cross_val_score(model_advanced, X_full, y, cv=gkf, groups=groups, scoring='accuracy').mean()
+    f1_full = cross_val_score(model_advanced, X_full, y, cv=gkf, groups=groups, scoring='f1').mean()
     print(f"  {'+ Sequence (ALL)':<25} {acc_full:>10.2%}   {f1_full:>10.2%}")
     
     # Improvement
     print(f"\n  ✅ Improvement: {(acc_full - acc_basic)*100:.2f}% accuracy, {(f1_full - f1_basic)*100:.2f}% F1")
     
     # Feature importance
-    model_advanced.fit(X, y)
+    model_advanced.fit(X_full, y)
+    clf = model_advanced.named_steps['model']
+    pre = model_advanced.named_steps['preprocess']
+    feature_names = pre.get_feature_names_out()
     importance = pd.DataFrame({
-        'feature': all_features,
-        'importance': model_advanced.feature_importances_
+        'feature': feature_names,
+        'importance': clf.feature_importances_
     }).sort_values('importance', ascending=False)
     
     print("\n  Top 15 Most Important Features:")
     for i, row in importance.head(15).iterrows():
         bar = '█' * int(row['importance'] * 50)
         print(f"    {row['feature']:<25} {row['importance']:.3f} {bar}")
+    
+    # Holdout evaluation
+    holdout_metrics = None
+    if df_hold is not None and not df_hold.empty:
+        X_hold = df_hold[all_features + cat_cols].copy()
+        X_hold[cat_cols] = X_hold[cat_cols].fillna('Unknown')
+        y_hold = (df_hold['pass_outcome'].isna() | (df_hold['pass_outcome'] == 'Complete')).astype(int).values
+        
+        y_pred = model_advanced.predict(X_hold)
+        holdout_metrics = {
+            'accuracy': accuracy_score(y_hold, y_pred),
+            'f1': f1_score(y_hold, y_pred)
+        }
+        
+        print("\n  Holdout Performance (Fixed Split):")
+        print(f"    Accuracy: {holdout_metrics['accuracy']:.2%}")
+        print(f"    F1 Score: {holdout_metrics['f1']:.2%}")
     
     # Save model
     models_dir = 'backend/models/trained'
@@ -403,6 +450,7 @@ def train_with_advanced_features(passes_df: pd.DataFrame) -> dict:
     model_data = {
         'model': model_advanced,
         'feature_cols': all_features,
+        'cat_cols': cat_cols,
         'accuracy': acc_full,
         'f1': f1_full,
         'improvement': {
@@ -419,7 +467,8 @@ def train_with_advanced_features(passes_df: pd.DataFrame) -> dict:
         'pressure': {'accuracy': acc_pressure, 'f1': f1_pressure},
         'xg': {'accuracy': acc_xg, 'f1': f1_xg},
         'full': {'accuracy': acc_full, 'f1': f1_full},
-        'top_features': importance.head(15).to_dict('records')
+        'top_features': importance.head(15).to_dict('records'),
+        'holdout': holdout_metrics
     }
 
 
@@ -437,7 +486,14 @@ def main():
         print("ERROR: Not enough data!")
         return
     
-    results = train_with_advanced_features(passes_df)
+    train_df, holdout_df, holdout_info = split_holdout(passes_df)
+    if holdout_info.get("enabled"):
+        print("\n  Holdout Split:")
+        print(f"    Rule: competition contains '{holdout_info['competition_contains']}', season contains '{holdout_info['season_contains']}'")
+        print(f"    Holdout passes: {holdout_info['holdout_size']:,} from {holdout_info['holdout_matches']} matches")
+        print(f"    Train passes: {holdout_info['train_size']:,}")
+    
+    results = train_with_advanced_features(train_df, holdout_df)
     
     # Summary
     print("\n" + "="*60)

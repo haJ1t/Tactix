@@ -67,11 +67,20 @@ class MLAnalysisPipeline:
         pattern_path = os.path.join(models_dir, 'tactical_classifier.joblib')
 
         if os.path.exists(vaep_path):
-            self.vaep_model.load_model(vaep_path)
+            try:
+                self.vaep_model.load_model(vaep_path)
+            except Exception as e:
+                print(f"Warning: Failed to load VAEP model: {e}")
         if os.path.exists(pass_path):
-            self.pass_model.load_model(pass_path)
+            try:
+                self.pass_model.load_model(pass_path)
+            except Exception as e:
+                print(f"Warning: Failed to load pass difficulty model: {e}")
         if os.path.exists(pattern_path):
-            self.pattern_classifier.load_model(pattern_path)
+            try:
+                self.pattern_classifier.load_model(pattern_path)
+            except Exception as e:
+                print(f"Warning: Failed to load tactical classifier: {e}")
 
     def analyze_passes(self, passes_df: pd.DataFrame,
                        player_info: Dict = None) -> Dict:
@@ -125,7 +134,7 @@ class MLAnalysisPipeline:
         passes_df['ml_pass_value'] = pass_values
 
         # Extract network features for pattern classification
-        features = self.pattern_classifier.extract_network_features(G, node_positions)
+        features = self.pattern_classifier.extract_match_features(G, node_positions, passes_df)
 
         # Detect tactical patterns (ML + rule-based)
         patterns = self.pattern_classifier.predict_patterns(features)

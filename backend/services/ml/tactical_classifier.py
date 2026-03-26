@@ -18,6 +18,8 @@ from typing import Dict, List, Tuple
 import joblib
 import os
 
+from .rich_features import extract_tactical_context_features
+
 
 class TacticalPatternClassifier:
     """
@@ -50,7 +52,10 @@ class TacticalPatternClassifier:
     ]
 
     def __init__(self):
-        self.scaler = StandardScaler()
+        self.classifier_scaler = StandardScaler()
+        self.kmeans_scaler = StandardScaler()
+        # Keep a legacy alias for older code paths and saved payloads.
+        self.scaler = self.classifier_scaler
         # Use GradientBoosting for supervised classification
         self.classifier = GradientBoostingClassifier(
             n_estimators=100,
@@ -64,6 +69,49 @@ class TacticalPatternClassifier:
         self.kmeans_trained = False
         self.cluster_centers_ = None
         self.feature_columns = []
+        self.pattern_classes = []
+
+    def _normalize_pattern_type(self, raw_pattern_type) -> str:
+        """Return a stable string label for classifier outputs."""
+        if isinstance(raw_pattern_type, str):
+            return raw_pattern_type
+
+        if isinstance(raw_pattern_type, np.generic):
+            raw_pattern_type = raw_pattern_type.item()
+
+        if raw_pattern_type is None:
+            return 'UNKNOWN'
+
+        if isinstance(raw_pattern_type, (int, np.integer)):
+            index = int(raw_pattern_type)
+            if 0 <= index < len(self.pattern_classes):
+                return str(self.pattern_classes[index])
+            if 0 <= index < len(self.PATTERN_TYPES):
+                return self.PATTERN_TYPES[index]
+            return f'CLASS_{index}'
+
+        return str(raw_pattern_type)
+
+    def _infer_pattern_classes_from_report(self, model_path: str) -> List[str]:
+        """Load saved class labels from the fine-tuning report when needed."""
+        report_path = os.path.join(os.path.dirname(path := model_path), 'finetune_report.json')
+        if not os.path.exists(report_path):
+            return []
+
+        try:
+            data = joblib.load(report_path)
+        except Exception:
+            try:
+                import json
+                with open(report_path, 'r') as fh:
+                    data = json.load(fh)
+            except Exception:
+                return []
+
+        classes = data.get('tactical_classifier', {}).get('classes', [])
+        if isinstance(classes, list):
+            return [str(label) for label in classes]
+        return []
 
     def extract_network_features(self, G: nx.DiGraph,
                                  node_positions: Dict = None) -> Dict:
@@ -181,6 +229,14 @@ class TacticalPatternClassifier:
         features['short_pass_ratio'] = short_passes / total_weight
         features['long_pass_ratio'] = long_passes / total_weight
 
+        return features
+
+    def extract_match_features(self, G: nx.DiGraph, node_positions: Dict = None,
+                               passes_df: pd.DataFrame = None) -> Dict:
+        """Combine network features with contextual team-match features."""
+        features = self.extract_network_features(G, node_positions)
+        if passes_df is not None and not passes_df.empty:
+            features.update(extract_tactical_context_features(passes_df))
         return features
 
     def _empty_features(self) -> Dict:
@@ -348,11 +404,13 @@ class TacticalPatternClassifier:
             X, y, test_size=0.2, random_state=42
         )
 
-        X_train_scaled = self.scaler.fit_transform(X_train)
-        X_test_scaled = self.scaler.transform(X_test)
+        X_train_scaled = self.classifier_scaler.fit_transform(X_train)
+        X_test_scaled = self.classifier_scaler.transform(X_test)
+        self.scaler = self.classifier_scaler
         
         self.classifier.fit(X_train_scaled, y_train)
         self.is_trained = True
+        self.pattern_classes = [str(label) for label in self.classifier.classes_]
 
         train_accuracy = self.classifier.score(X_train_scaled, y_train)
         test_accuracy = self.classifier.score(X_test_scaled, y_test)
@@ -374,7 +432,7 @@ class TacticalPatternClassifier:
         
         X = pd.DataFrame(features_list)
         self.feature_columns = list(X.columns)
-        X_scaled = self.scaler.fit_transform(X)
+        X_scaled = self.kmeans_scaler.fit_transform(X)
 
         self.kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         labels = self.kmeans.fit_predict(X_scaled)
@@ -449,7 +507,7 @@ class TacticalPatternClassifier:
             # Train K-Means if not already trained
             self.train_kmeans(features_list)
         
-        X_scaled = self.scaler.transform(X)
+        X_scaled = self.kmeans_scaler.transform(X)
         labels = self.kmeans.predict(X_scaled)
 
         # Interpret clusters
@@ -479,7 +537,7 @@ class TacticalPatternClassifier:
                     if col not in X.columns:
                         X[col] = 0
                 X = X[self.feature_columns]
-                X_scaled = self.scaler.transform(X)
+                X_scaled = self.kmeans_scaler.transform(X)
                 cluster_label = self.kmeans.predict(X_scaled)[0]
                 cluster_name = self.CLUSTER_NAMES[cluster_label] if cluster_label < len(self.CLUSTER_NAMES) else f'Cluster_{cluster_label}'
                 
@@ -500,7 +558,7 @@ class TacticalPatternClassifier:
                     if col not in X.columns:
                         X[col] = 0
                 X = X[self.feature_columns]
-                X_scaled = self.scaler.transform(X)
+                X_scaled = self.classifier_scaler.transform(X)
 
                 # Get probabilities for all classes
                 proba = self.classifier.predict_proba(X_scaled)[0]
@@ -508,18 +566,21 @@ class TacticalPatternClassifier:
 
                 for i, p in enumerate(proba):
                     if p > 0.15:  # Threshold for reporting
+                        pattern_type = self._normalize_pattern_type(classes[i])
                         patterns.append({
-                            'pattern_type': classes[i],
+                            'pattern_type': pattern_type,
                             'confidence_score': float(p),
-                            'description': f'GradientBoosting classified as {classes[i]}',
+                            'description': f'GradientBoosting classified as {pattern_type}',
                             'evidence': {'ml_probability': float(p), 'algorithm': 'GradientBoosting'}
                         })
             except Exception as e:
                 pass  # Fall back to rule-based
-        
+
         # Add rule-based patterns that don't overlap
         for rp in rule_patterns:
-            if not any(p['pattern_type'] == rp['pattern_type'] for p in patterns):
+            rule_pattern_type = self._normalize_pattern_type(rp.get('pattern_type'))
+            rp = {**rp, 'pattern_type': rule_pattern_type}
+            if not any(self._normalize_pattern_type(p.get('pattern_type')) == rule_pattern_type for p in patterns):
                 patterns.append(rp)
 
         return sorted(patterns, key=lambda x: x['confidence_score'], reverse=True)
@@ -544,7 +605,7 @@ class TacticalPatternClassifier:
                     if col not in X.columns:
                         X[col] = 0
                 X = X[self.feature_columns]
-                X_scaled = self.scaler.transform(X)
+                X_scaled = self.kmeans_scaler.transform(X)
                 cluster_label = self.kmeans.predict(X_scaled)[0]
                 result['style_category'] = self.CLUSTER_NAMES[cluster_label] if cluster_label < len(self.CLUSTER_NAMES) else f'Cluster_{cluster_label}'
             except:
@@ -557,22 +618,42 @@ class TacticalPatternClassifier:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         joblib.dump({
             'classifier': self.classifier,
-            'scaler': self.scaler,
+            'scaler': self.classifier_scaler,
+            'classifier_scaler': self.classifier_scaler,
+            'kmeans_scaler': self.kmeans_scaler,
             'kmeans': self.kmeans,
             'is_trained': self.is_trained,
             'kmeans_trained': self.kmeans_trained,
             'feature_columns': self.feature_columns,
-            'cluster_centers': self.cluster_centers_
+            'cluster_centers': self.cluster_centers_,
+            'pattern_classes': self.pattern_classes,
         }, path)
 
     def load_model(self, path: str):
         """Load trained models."""
         if os.path.exists(path):
-            data = joblib.load(path)
-            self.classifier = data.get('classifier', self.classifier)
-            self.scaler = data.get('scaler', self.scaler)
-            self.kmeans = data.get('kmeans', self.kmeans)
-            self.is_trained = data.get('is_trained', False)
-            self.kmeans_trained = data.get('kmeans_trained', False)
-            self.feature_columns = data.get('feature_columns', [])
-            self.cluster_centers_ = data.get('cluster_centers', None)
+            try:
+                data = joblib.load(path)
+                self.classifier = data.get('classifier', self.classifier)
+                legacy_scaler = data.get('scaler')
+                self.classifier_scaler = data.get('classifier_scaler', legacy_scaler if legacy_scaler is not None else self.classifier_scaler)
+                self.kmeans_scaler = data.get('kmeans_scaler', legacy_scaler if legacy_scaler is not None else self.kmeans_scaler)
+                self.scaler = self.classifier_scaler
+                self.kmeans = data.get('kmeans', self.kmeans)
+                self.is_trained = data.get('is_trained', False)
+                self.kmeans_trained = data.get('kmeans_trained', False)
+                self.feature_columns = data.get('feature_columns', [])
+                self.cluster_centers_ = data.get('cluster_centers', None)
+                self.pattern_classes = [str(label) for label in data.get('pattern_classes', [])]
+                if not self.pattern_classes and hasattr(self.classifier, 'classes_'):
+                    raw_classes = list(getattr(self.classifier, 'classes_', []))
+                    if raw_classes and all(not isinstance(label, str) for label in raw_classes):
+                        inferred_classes = self._infer_pattern_classes_from_report(path)
+                        if len(inferred_classes) == len(raw_classes):
+                            self.pattern_classes = inferred_classes
+                    if not self.pattern_classes:
+                        self.pattern_classes = [self._normalize_pattern_type(label) for label in raw_classes]
+            except Exception as e:
+                self.is_trained = False
+                self.kmeans_trained = False
+                print(f"Warning: Failed to load tactical classifier from {path}: {e}")

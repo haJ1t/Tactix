@@ -1,7 +1,7 @@
 """
 Pass event model (extends Event)
 """
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from . import Base
 
@@ -21,6 +21,11 @@ class PassEvent(Base):
     pass_type = Column(String(50))  # Ground, High, Through Ball, etc.
     pass_height = Column(String(20))  # Ground, Low, High
     body_part = Column(String(30))  # Right Foot, Left Foot, Head
+    technique = Column(String(50))
+    is_cross = Column(Boolean)
+    is_switch = Column(Boolean)
+    is_through_ball = Column(Boolean)
+    is_cut_back = Column(Boolean)
     
     # Relationships
     event = relationship('Event', back_populates='pass_event')
@@ -40,5 +45,10 @@ class PassEvent(Base):
             'pass_length': self.pass_length,
             'pass_angle': self.pass_angle,
             'pass_outcome': self.pass_outcome,
-            'pass_type': self.pass_type
+            'pass_type': self.pass_type,
+            'technique': self.technique,
+            'is_cross': self.is_cross,
+            'is_switch': self.is_switch,
+            'is_through_ball': self.is_through_ball,
+            'is_cut_back': self.is_cut_back
         }

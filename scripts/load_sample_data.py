@@ -148,12 +148,22 @@ def load_sample_match(competition_id: int = None, season_id: int = None, match_i
                 team_id=event_data.get('team_id'),
                 player_id=event_data.get('player_id'),
                 event_type=event_data['event_type'],
+                event_index=event_data.get('event_index'),
                 period=event_data['period'],
                 timestamp=event_data['timestamp'],
+                duration=event_data.get('duration'),
                 minute=event_data['minute'],
                 second=event_data['second'],
                 location_x=event_data.get('location_x'),
-                location_y=event_data.get('location_y')
+                location_y=event_data.get('location_y'),
+                possession_id=event_data.get('possession_id'),
+                possession_team_id=event_data.get('possession_team_id'),
+                play_pattern=event_data.get('play_pattern'),
+                position_name=event_data.get('position_name'),
+                under_pressure=event_data.get('under_pressure'),
+                outcome_name=event_data.get('outcome_name'),
+                shot_outcome=event_data.get('shot_outcome'),
+                is_goal=event_data.get('is_goal'),
             )
             db.add(event)
         
@@ -184,7 +194,12 @@ def load_sample_match(competition_id: int = None, season_id: int = None, match_i
                 pass_outcome=pass_data.get('pass_outcome'),
                 pass_type=pass_data.get('pass_type'),
                 pass_height=pass_data.get('pass_height'),
-                body_part=pass_data.get('body_part')
+                body_part=pass_data.get('body_part'),
+                technique=pass_data.get('technique'),
+                is_cross=pass_data.get('is_cross'),
+                is_switch=pass_data.get('is_switch'),
+                is_through_ball=pass_data.get('is_through_ball'),
+                is_cut_back=pass_data.get('is_cut_back'),
             )
             db.add(pass_event)
             pass_count += 1

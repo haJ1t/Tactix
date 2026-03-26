@@ -10,7 +10,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import StratifiedKFold, cross_val_score, cross_val_predict
+from sklearn.model_selection import GroupKFold, GroupShuffleSplit, cross_val_score, cross_val_predict
 from sklearn.ensemble import (
     RandomForestClassifier, 
     GradientBoostingClassifier,
@@ -20,7 +20,9 @@ from sklearn.ensemble import (
     ExtraTreesClassifier
 )
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, f1_score
 import xgboost as xgb
 import lightgbm as lgb
@@ -34,7 +36,9 @@ os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.models import SessionLocal, init_db
 from backend.models.event import Event
+from backend.models.match import Match
 from backend.models.pass_event import PassEvent
+from backend.services.ml.holdout_utils import split_holdout
 
 
 def get_all_passes_from_db():
@@ -42,7 +46,7 @@ def get_all_passes_from_db():
     print("Loading all passes from database...")
     db = SessionLocal()
     try:
-        passes = db.query(PassEvent).join(Event).all()
+        passes = db.query(PassEvent).join(Event).join(Match, Event.match_id == Match.match_id).all()
         
         passes_data = []
         for p in passes:
@@ -50,6 +54,7 @@ def get_all_passes_from_db():
             if event is None:
                 continue
                 
+            match = event.match
             passes_data.append({
                 'match_id': event.match_id,
                 'passer_id': p.passer_id,
@@ -61,6 +66,11 @@ def get_all_passes_from_db():
                 'end_location_y': p.end_location_y or 40,
                 'pass_length': p.pass_length,
                 'pass_outcome': p.pass_outcome,
+                'pass_type': p.pass_type,
+                'pass_height': p.pass_height,
+                'body_part': p.body_part,
+                'competition': match.competition if match else None,
+                'season': match.season if match else None,
                 'minute': event.minute,
                 'second': event.second,
                 'period': event.period,
@@ -74,7 +84,7 @@ def get_all_passes_from_db():
 
 def prepare_features(df: pd.DataFrame) -> tuple:
     """Prepare enhanced features for ensemble."""
-    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y', 'recipient_id'])
+    df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
     
     # Basic features
     df['pass_length'] = np.sqrt(
@@ -96,31 +106,42 @@ def prepare_features(df: pd.DataFrame) -> tuple:
     df['normalized_minute'] = df['minute'] / 90
     df['is_late_game'] = (df['minute'] >= 75).astype(int)
     
-    feature_cols = [
+    num_cols = [
         'location_x', 'location_y', 'end_location_x', 'end_location_y',
         'pass_length', 'dx', 'dy', 'is_forward', 'is_backward', 'is_long_pass',
         'distance_to_goal', 'in_final_third', 'in_box',
         'normalized_minute', 'is_late_game'
     ]
+    cat_cols = ['pass_type', 'pass_height', 'body_part']
     
-    X = df[feature_cols].fillna(0).values
+    X_df = df[num_cols + cat_cols].copy()
+    X_df[cat_cols] = X_df[cat_cols].fillna('Unknown')
     y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int).values
+    groups = df['match_id'].values
     
-    return X, y, feature_cols
+    return X_df, y, num_cols, cat_cols, groups
 
 
-def train_ensemble_models(X: np.ndarray, y: np.ndarray) -> dict:
+def train_ensemble_models(X_df: pd.DataFrame, y: np.ndarray, num_cols: list, cat_cols: list, groups: np.ndarray) -> dict:
     """Train and compare ensemble methods."""
     print("\n" + "="*60)
     print("ENSEMBLE MODEL TRAINING")
     print("="*60)
     
     # Sample for speed
-    if len(X) > 100000:
-        idx = np.random.choice(len(X), 100000, replace=False)
-        X, y = X[idx], y[idx]
+    if len(X_df) > 100000:
+        idx = np.random.choice(len(X_df), 100000, replace=False)
+        X_df, y = X_df.iloc[idx], y[idx]
+        groups = groups[idx]
     
-    print(f"\n  Samples: {len(X):,}")
+    print(f"\n  Samples: {len(X_df):,}")
+    
+    def make_pipeline(model):
+        preprocessor = ColumnTransformer(
+            [('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)],
+            remainder='passthrough'
+        )
+        return Pipeline([('preprocess', preprocessor), ('model', model)])
     
     # Base models
     rf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)
@@ -185,15 +206,15 @@ def train_ensemble_models(X: np.ndarray, y: np.ndarray) -> dict:
     # ==========================================
     print("  [4/4] Comparing all ensemble methods...\n")
     
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    gkf = GroupKFold(n_splits=5)
     
     models = {
-        'Random Forest (Base)': RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1),
-        'XGBoost (Base)': xgb.XGBClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbosity=0),
-        'LightGBM (Base)': lgb.LGBMClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1),
-        'Hard Voting': hard_voting,
-        'Soft Voting': soft_voting,
-        'Stacking': stacking,
+        'Random Forest (Base)': make_pipeline(RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)),
+        'XGBoost (Base)': make_pipeline(xgb.XGBClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbosity=0)),
+        'LightGBM (Base)': make_pipeline(lgb.LGBMClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1)),
+        'Hard Voting': make_pipeline(hard_voting),
+        'Soft Voting': make_pipeline(soft_voting),
+        'Stacking': make_pipeline(stacking),
     }
     
     results = {}
@@ -208,8 +229,8 @@ def train_ensemble_models(X: np.ndarray, y: np.ndarray) -> dict:
     for name, model in models.items():
         start = time.time()
         
-        acc_scores = cross_val_score(model, X, y, cv=skf, scoring='accuracy', n_jobs=-1)
-        f1_scores = cross_val_score(model, X, y, cv=skf, scoring='f1', n_jobs=-1)
+        acc_scores = cross_val_score(model, X_df, y, cv=gkf, groups=groups, scoring='accuracy', n_jobs=-1)
+        f1_scores = cross_val_score(model, X_df, y, cv=gkf, groups=groups, scoring='f1', n_jobs=-1)
         
         elapsed = time.time() - start
         
@@ -231,12 +252,21 @@ def train_ensemble_models(X: np.ndarray, y: np.ndarray) -> dict:
     print("\n  Training Blending Ensemble (manual)...")
     
     # Split data for blending
-    blend_idx = np.random.permutation(len(X))
-    train_idx = blend_idx[:int(0.8 * len(X))]
-    blend_train_idx = blend_idx[int(0.8 * len(X)):]
+    splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+    train_idx, blend_train_idx = next(splitter.split(X_df, y, groups))
     
-    X_train, y_train = X[train_idx], y[train_idx]
-    X_blend, y_blend = X[blend_train_idx], y[blend_train_idx]
+    X_train_df, y_train = X_df.iloc[train_idx], y[train_idx]
+    X_blend_df, y_blend = X_df.iloc[blend_train_idx], y[blend_train_idx]
+    
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+    X_train_cat = encoder.fit_transform(X_train_df[cat_cols])
+    X_blend_cat = encoder.transform(X_blend_df[cat_cols])
+    
+    X_train_num = X_train_df[num_cols].fillna(0).values
+    X_blend_num = X_blend_df[num_cols].fillna(0).values
+    
+    X_train = np.hstack([X_train_num, X_train_cat])
+    X_blend = np.hstack([X_blend_num, X_blend_cat])
     
     # Train base models
     base_models = [
@@ -261,9 +291,19 @@ def train_ensemble_models(X: np.ndarray, y: np.ndarray) -> dict:
     blend_acc_scores = []
     blend_f1_scores = []
     
-    for train_idx, test_idx in skf.split(X, y):
-        X_tr, X_te = X[train_idx], X[test_idx]
+    for train_idx, test_idx in gkf.split(X_df, y, groups):
+        X_tr_df, X_te_df = X_df.iloc[train_idx], X_df.iloc[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
+        
+        encoder_cv = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+        X_tr_cat = encoder_cv.fit_transform(X_tr_df[cat_cols])
+        X_te_cat = encoder_cv.transform(X_te_df[cat_cols])
+        
+        X_tr_num = X_tr_df[num_cols].fillna(0).values
+        X_te_num = X_te_df[num_cols].fillna(0).values
+        
+        X_tr = np.hstack([X_tr_num, X_tr_cat])
+        X_te = np.hstack([X_te_num, X_te_cat])
         
         # Train base models
         test_predictions = np.zeros((len(X_te), len(base_models)))
@@ -301,7 +341,15 @@ def train_ensemble_models(X: np.ndarray, y: np.ndarray) -> dict:
     return results, best_model
 
 
-def train_final_ensemble(X: np.ndarray, y: np.ndarray, feature_cols: list) -> dict:
+def train_final_ensemble(
+    X_df: pd.DataFrame,
+    y: np.ndarray,
+    groups: np.ndarray,
+    num_cols: list,
+    cat_cols: list,
+    X_holdout_df: pd.DataFrame = None,
+    y_holdout: np.ndarray = None
+) -> dict:
     """Train and save the final best ensemble."""
     print("\n" + "="*60)
     print("TRAINING FINAL ENSEMBLE MODEL")
@@ -321,25 +369,42 @@ def train_final_ensemble(X: np.ndarray, y: np.ndarray, feature_cols: list) -> di
         n_jobs=-1
     )
     
+    preprocessor = ColumnTransformer(
+        [('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)],
+        remainder='passthrough'
+    )
+    final_pipeline = Pipeline([('preprocess', preprocessor), ('model', final_ensemble)])
+    
     print("\n  Training final ensemble on full data...")
-    final_ensemble.fit(X, y)
+    final_pipeline.fit(X_df, y)
     
     # Evaluate
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    acc_scores = cross_val_score(final_ensemble, X, y, cv=skf, scoring='accuracy', n_jobs=-1)
-    f1_scores = cross_val_score(final_ensemble, X, y, cv=skf, scoring='f1', n_jobs=-1)
+    gkf = GroupKFold(n_splits=5)
+    acc_scores = cross_val_score(final_pipeline, X_df, y, cv=gkf, groups=groups, scoring='accuracy', n_jobs=-1)
+    f1_scores = cross_val_score(final_pipeline, X_df, y, cv=gkf, groups=groups, scoring='f1', n_jobs=-1)
     
     print(f"\n  Final Ensemble Performance:")
     print(f"    Accuracy: {acc_scores.mean():.2%} (+/- {acc_scores.std()*2:.2%})")
     print(f"    F1 Score: {f1_scores.mean():.2%} (+/- {f1_scores.std()*2:.2%})")
+    
+    # Holdout evaluation
+    if X_holdout_df is not None and y_holdout is not None and len(X_holdout_df) > 0:
+        y_pred = final_pipeline.predict(X_holdout_df)
+        holdout_acc = accuracy_score(y_holdout, y_pred)
+        holdout_f1 = f1_score(y_holdout, y_pred)
+        
+        print("\n  Holdout Performance (Fixed Split):")
+        print(f"    Accuracy: {holdout_acc:.2%}")
+        print(f"    F1 Score: {holdout_f1:.2%}")
     
     # Save model
     models_dir = 'backend/models/trained'
     os.makedirs(models_dir, exist_ok=True)
     
     model_data = {
-        'ensemble': final_ensemble,
-        'feature_cols': feature_cols,
+        'ensemble': final_pipeline,
+        'num_cols': num_cols,
+        'cat_cols': cat_cols,
         'accuracy': acc_scores.mean(),
         'f1': f1_scores.mean(),
         'type': 'soft_voting_4_models'
@@ -367,14 +432,25 @@ def main():
         print("ERROR: Not enough data!")
         return
     
+    train_df, holdout_df, holdout_info = split_holdout(passes_df)
+    if holdout_info.get("enabled"):
+        print("\n  Holdout Split:")
+        print(f"    Rule: competition contains '{holdout_info['competition_contains']}', season contains '{holdout_info['season_contains']}'")
+        print(f"    Holdout passes: {holdout_info['holdout_size']:,} from {holdout_info['holdout_matches']} matches")
+        print(f"    Train passes: {holdout_info['train_size']:,}")
+    
     # Prepare features
-    X, y, feature_cols = prepare_features(passes_df)
+    X_df, y, num_cols, cat_cols, groups = prepare_features(train_df)
+    
+    X_holdout_df, y_holdout = None, None
+    if holdout_df is not None and not holdout_df.empty:
+        X_holdout_df, y_holdout, _, _, _ = prepare_features(holdout_df)
     
     # Train and compare ensemble methods
-    results, best_model = train_ensemble_models(X, y)
+    results, best_model = train_ensemble_models(X_df, y, num_cols, cat_cols, groups)
     
     # Train final ensemble
-    final_results = train_final_ensemble(X, y, feature_cols)
+    final_results = train_final_ensemble(X_df, y, groups, num_cols, cat_cols, X_holdout_df, y_holdout)
     
     # Summary
     print("\n" + "="*60)

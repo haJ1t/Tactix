@@ -9,7 +9,6 @@ increases/decreases the probability of scoring and conceding.
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import train_test_split
 import joblib
 import os
 
@@ -21,19 +20,29 @@ class VAEPModel:
 
     def __init__(self):
         self.scoring_model = GradientBoostingClassifier(
-            n_estimators=100,
-            max_depth=5,
-            learning_rate=0.1,
+            n_estimators=150,
+            max_depth=3,
+            learning_rate=0.05,
             random_state=42
         )
         self.conceding_model = GradientBoostingClassifier(
-            n_estimators=100,
-            max_depth=5,
-            learning_rate=0.1,
+            n_estimators=150,
+            max_depth=3,
+            learning_rate=0.05,
             random_state=42
         )
         self.feature_columns = []
         self.is_trained = False
+
+    def _encode_category(self, series: pd.Series) -> pd.Series:
+        return pd.Categorical(series.fillna('Unknown').astype(str)).codes.astype(float)
+
+    def _safe_series(self, actions_df: pd.DataFrame, column: str, default) -> pd.Series:
+        if column in actions_df.columns:
+            return actions_df[column]
+        if isinstance(default, pd.Series):
+            return default.reindex(actions_df.index)
+        return pd.Series([default] * len(actions_df), index=actions_df.index)
 
     def extract_features(self, actions_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -49,10 +58,10 @@ class VAEPModel:
         features = pd.DataFrame()
 
         # Location features
-        features['start_x'] = actions_df['location_x'].fillna(60)
-        features['start_y'] = actions_df['location_y'].fillna(40)
-        features['end_x'] = actions_df.get('end_location_x', actions_df['location_x']).fillna(60)
-        features['end_y'] = actions_df.get('end_location_y', actions_df['location_y']).fillna(40)
+        features['start_x'] = self._safe_series(actions_df, 'location_x', 60).fillna(60)
+        features['start_y'] = self._safe_series(actions_df, 'location_y', 40).fillna(40)
+        features['end_x'] = self._safe_series(actions_df, 'end_location_x', features['start_x']).fillna(60)
+        features['end_y'] = self._safe_series(actions_df, 'end_location_y', features['start_y']).fillna(40)
 
         # Distance to goal (goal at x=120, y=40)
         features['dist_to_goal'] = np.sqrt(
@@ -108,6 +117,16 @@ class VAEPModel:
         features['start_lateral'] = abs(features['start_y'] - 40)
         features['end_lateral'] = abs(features['end_y'] - 40)
 
+        # Enriched context features
+        features['event_type_code'] = self._encode_category(self._safe_series(actions_df, 'event_type', 'Pass'))
+        features['play_pattern_code'] = self._encode_category(self._safe_series(actions_df, 'play_pattern', 'Open Play'))
+        features['position_code'] = self._encode_category(self._safe_series(actions_df, 'position_name', 'Unknown'))
+        features['under_pressure'] = self._safe_series(actions_df, 'under_pressure', 0).fillna(0).astype(int)
+        features['score_diff'] = pd.to_numeric(self._safe_series(actions_df, 'score_diff', 0), errors='coerce').fillna(0)
+        features['final_goal_diff'] = pd.to_numeric(self._safe_series(actions_df, 'final_goal_diff', 0), errors='coerce').fillna(0)
+        features['event_index'] = pd.to_numeric(self._safe_series(actions_df, 'event_index', 0), errors='coerce').fillna(0)
+        features['possession_id'] = pd.to_numeric(self._safe_series(actions_df, 'possession_id', 0), errors='coerce').fillna(0)
+
         self.feature_columns = features.columns.tolist()
         return features.fillna(0)
 
@@ -123,46 +142,67 @@ class VAEPModel:
         scores = np.zeros(n)
         concedes = np.zeros(n)
 
-        # Check for goal events
-        if 'event_type' in actions_df.columns:
-            goal_mask = (actions_df['event_type'] == 'Shot') & \
-                       (actions_df.get('outcome', actions_df.get('pass_outcome', '')) == 'Goal')
-            goal_indices = actions_df[goal_mask].index.tolist()
+        if actions_df is None or actions_df.empty or 'match_id' not in actions_df.columns:
+            return scores, concedes
 
-            for goal_idx in goal_indices:
-                goal_pos = actions_df.index.get_loc(goal_idx)
-                goal_team = actions_df.iloc[goal_pos].get('team_id')
+        ordered = actions_df.copy()
+        ordered['_orig_index'] = np.arange(len(actions_df))
+        sort_cols = ['match_id']
+        if 'event_index' in ordered.columns:
+            sort_cols.append('event_index')
+        else:
+            sort_cols.extend(['period', 'minute', 'second'])
+        ordered = ordered.sort_values(sort_cols).reset_index(drop=True)
 
-                # Mark previous actions
-                start_idx = max(0, goal_pos - lookforward_actions)
-                for i in range(start_idx, goal_pos):
-                    action_team = actions_df.iloc[i].get('team_id')
+        goal_mask = ordered.get('is_goal', pd.Series([False] * len(ordered))).fillna(False).astype(bool)
+        if 'shot_outcome' in ordered.columns:
+            goal_mask = goal_mask | ordered['shot_outcome'].fillna('').eq('Goal')
+
+        for _, match_df in ordered.groupby('match_id', sort=False):
+            goal_positions = match_df.index[goal_mask.loc[match_df.index]].tolist()
+            for goal_pos in goal_positions:
+                goal_team = ordered.iloc[goal_pos].get('team_id')
+                start_idx = max(match_df.index.min(), goal_pos - lookforward_actions)
+                for idx in range(start_idx, goal_pos):
+                    action_team = ordered.iloc[idx].get('team_id')
                     if action_team == goal_team:
-                        scores[i] = 1
+                        scores[idx] = 1
                     else:
-                        concedes[i] = 1
+                        concedes[idx] = 1
 
-        return scores, concedes
+        ordered['score_label'] = scores
+        ordered['concede_label'] = concedes
+        ordered = ordered.sort_values('_orig_index')
+
+        return ordered['score_label'].to_numpy(), ordered['concede_label'].to_numpy()
 
     def train(self, actions_df: pd.DataFrame) -> dict:
         """Train both scoring and conceding models."""
         X = self.extract_features(actions_df)
         y_scores, y_concedes = self.create_labels(actions_df)
 
-        # Check if we have enough positive samples
         if y_scores.sum() < 5 or y_concedes.sum() < 5:
-            print("Warning: Not enough goal events for proper training")
-            # Use synthetic labels for demo
-            y_scores = (X['progress'] > 10).astype(int).values
-            y_concedes = (X['progress'] < -10).astype(int).values
+            raise ValueError('Not enough goal events for grouped VAEP training')
 
-        # Split data
-        X_train, X_test, y_scores_train, y_scores_test = train_test_split(
-            X, y_scores, test_size=0.2, random_state=42
-        )
-        _, _, y_concedes_train, y_concedes_test = train_test_split(
-            X, y_concedes, test_size=0.2, random_state=42
-        )
+        if 'match_id' not in actions_df.columns:
+            raise ValueError('actions_df must contain match_id for grouped VAEP training')
+
+        match_ids = pd.Index(actions_df['match_id']).unique().tolist()
+        rng = np.random.default_rng(42)
+        rng.shuffle(match_ids)
+        split_index = max(int(len(match_ids) * 0.8), 1)
+        train_matches = set(match_ids[:split_index])
+        test_matches = set(match_ids[split_index:]) or train_matches
+
+        train_mask = actions_df['match_id'].isin(train_matches).values
+        test_mask = actions_df['match_id'].isin(test_matches).values
+
+        X_train = X.loc[train_mask]
+        X_test = X.loc[test_mask]
+        y_scores_train = y_scores[train_mask]
+        y_scores_test = y_scores[test_mask]
+        y_concedes_train = y_concedes[train_mask]
+        y_concedes_test = y_concedes[test_mask]
 
         # Train models
         self.scoring_model.fit(X_train, y_scores_train)
@@ -177,7 +217,9 @@ class VAEPModel:
         return {
             'scoring_accuracy': score_acc,
             'conceding_accuracy': concede_acc,
-            'samples_used': len(X_train)
+            'samples_used': len(X_train),
+            'train_matches': len(train_matches),
+            'test_matches': len(test_matches),
         }
 
     def calculate_vaep(self, actions_df: pd.DataFrame) -> pd.DataFrame:
@@ -246,8 +288,12 @@ class VAEPModel:
     def load_model(self, path: str):
         """Load trained models."""
         if os.path.exists(path):
-            data = joblib.load(path)
-            self.scoring_model = data['scoring_model']
-            self.conceding_model = data['conceding_model']
-            self.feature_columns = data['feature_columns']
-            self.is_trained = data['is_trained']
+            try:
+                data = joblib.load(path)
+                self.scoring_model = data['scoring_model']
+                self.conceding_model = data['conceding_model']
+                self.feature_columns = data['feature_columns']
+                self.is_trained = data['is_trained']
+            except Exception as e:
+                self.is_trained = False
+                print(f"Warning: Failed to load VAEP model from {path}: {e}")

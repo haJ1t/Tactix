@@ -1,0 +1,497 @@
+{
+  "generated_at": "2026-03-10T16:51:56.988516+00:00",
+  "source": "scripts/cross_validate_runtime_models.py",
+  "benchmark_holdout": {
+    "enabled": true,
+    "competition_contains": "World Cup",
+    "season_contains": "2022",
+    "match_ids": null,
+    "reason": "ok",
+    "train_size": 561124,
+    "holdout_size": 63735,
+    "holdout_matches": 64,
+    "display_name": "World Cup 2022"
+  },
+  "dataset": {
+    "total_matches": 661,
+    "total_pass_rows": 624859,
+    "train_pass_rows": 561124,
+    "holdout_pass_rows": 63735,
+    "tactical_train_rows": 472,
+    "tactical_holdout_rows": 54
+  },
+  "pass_difficulty": {
+    "model": "LightGBM enriched general pass model",
+    "sample_rows": 80000,
+    "fold_count": 5,
+    "folds": [
+      {
+        "fold": 1,
+        "rows": 15968,
+        "accuracy": 0.9906062124248497,
+        "f1": 0.9944747311035804,
+        "match_count": 119
+      },
+      {
+        "fold": 2,
+        "rows": 16051,
+        "accuracy": 0.9889103482649056,
+        "f1": 0.9933976261127596,
+        "match_count": 120
+      },
+      {
+        "fold": 3,
+        "rows": 15967,
+        "accuracy": 0.9887893780923154,
+        "f1": 0.9933528909354228,
+        "match_count": 119
+      },
+      {
+        "fold": 4,
+        "rows": 16048,
+        "accuracy": 0.9889082751744765,
+        "f1": 0.9934501030320871,
+        "match_count": 120
+      },
+      {
+        "fold": 5,
+        "rows": 15966,
+        "accuracy": 0.9888513090316924,
+        "f1": 0.9934239692625979,
+        "match_count": 119
+      }
+    ],
+    "cv_summary": {
+      "mean_accuracy": 0.9892131045976479,
+      "std_accuracy": 0.0006979644654742556,
+      "mean_f1": 0.9936198640892895,
+      "std_f1": 0.00042863868114935915
+    },
+    "cv_confusion_matrix": {
+      "labels": [
+        "failed",
+        "successful"
+      ],
+      "matrix": [
+        [
+          11928,
+          413
+        ],
+        [
+          450,
+          67209
+        ]
+      ]
+    },
+    "holdout": {
+      "accuracy": 0.9736722366046913,
+      "f1": 0.9851934208668643,
+      "rows": 63735,
+      "match_count": 64,
+      "confusion_matrix": {
+        "labels": [
+          "failed",
+          "successful"
+        ],
+        "matrix": [
+          [
+            6232,
+            1157
+          ],
+          [
+            521,
+            55825
+          ]
+        ]
+      }
+    },
+    "comparison": {
+      "latest_finetune": {
+        "accuracy": 0.9763866007688083,
+        "f1": 0.9866869532141499
+      },
+      "delta": {
+        "accuracy": -0.002714364164117078,
+        "f1": -0.0014935323472855533
+      }
+    }
+  },
+  "tactical_classifier": {
+    "label_policy": "confidence_filtered_silver_labels",
+    "model": "SoftVotingEnsemble",
+    "rows": 472,
+    "classes": [
+      "CENTRAL_BUILDUP",
+      "DIRECT_PLAY",
+      "POSSESSION_RECYCLING"
+    ],
+    "silver_label_artifact": "backend/models/trained/tactical_silver_labels.csv",
+    "fold_count": 5,
+    "folds": [
+      {
+        "fold": 1,
+        "rows": 100,
+        "skipped_rows": 0,
+        "match_count": 83,
+        "heldout_classes": [
+          "CENTRAL_BUILDUP",
+          "DIRECT_PLAY",
+          "POSSESSION_RECYCLING"
+        ],
+        "accuracy": 0.99,
+        "f1_weighted": 0.9900274139506549
+      },
+      {
+        "fold": 2,
+        "rows": 95,
+        "skipped_rows": 0,
+        "match_count": 79,
+        "heldout_classes": [
+          "CENTRAL_BUILDUP",
+          "DIRECT_PLAY",
+          "POSSESSION_RECYCLING"
+        ],
+        "accuracy": 1.0,
+        "f1_weighted": 1.0
+      },
+      {
+        "fold": 3,
+        "rows": 91,
+        "skipped_rows": 0,
+        "match_count": 73,
+        "heldout_classes": [
+          "CENTRAL_BUILDUP",
+          "DIRECT_PLAY",
+          "POSSESSION_RECYCLING"
+        ],
+        "accuracy": 1.0,
+        "f1_weighted": 1.0
+      },
+      {
+        "fold": 4,
+        "rows": 93,
+        "skipped_rows": 0,
+        "match_count": 71,
+        "heldout_classes": [
+          "CENTRAL_BUILDUP",
+          "DIRECT_PLAY",
+          "POSSESSION_RECYCLING"
+        ],
+        "accuracy": 0.978494623655914,
+        "f1_weighted": 0.9783221046422357
+      },
+      {
+        "fold": 5,
+        "rows": 93,
+        "skipped_rows": 0,
+        "match_count": 80,
+        "heldout_classes": [
+          "CENTRAL_BUILDUP",
+          "DIRECT_PLAY",
+          "POSSESSION_RECYCLING"
+        ],
+        "accuracy": 0.989247311827957,
+        "f1_weighted": 0.9891976601654021
+      }
+    ],
+    "cv_summary": {
+      "mean_accuracy": 0.9915483870967743,
+      "std_accuracy": 0.008011900040516022,
+      "mean_f1_weighted": 0.9915094357516585,
+      "std_f1_weighted": 0.00807001560444392,
+      "evaluated_rows": 472,
+      "skipped_rows": 0
+    },
+    "cv_confusion_matrix": {
+      "labels": [
+        "CENTRAL_BUILDUP",
+        "DIRECT_PLAY",
+        "POSSESSION_RECYCLING"
+      ],
+      "matrix": [
+        [
+          163,
+          1,
+          2
+        ],
+        [
+          0,
+          194,
+          0
+        ],
+        [
+          0,
+          1,
+          111
+        ]
+      ]
+    },
+    "cv_per_class_metrics": [
+      {
+        "label": "CENTRAL_BUILDUP",
+        "precision": 1.0,
+        "recall": 0.9819277108433735,
+        "f1": 0.9908814589665653,
+        "support": 166
+      },
+      {
+        "label": "DIRECT_PLAY",
+        "precision": 0.9897959183673469,
+        "recall": 1.0,
+        "f1": 0.9948717948717949,
+        "support": 194
+      },
+      {
+        "label": "POSSESSION_RECYCLING",
+        "precision": 0.9823008849557522,
+        "recall": 0.9910714285714286,
+        "f1": 0.9866666666666667,
+        "support": 112
+      }
+    ],
+    "holdout": {
+      "accuracy": 1.0,
+      "f1_weighted": 1.0,
+      "rows": 54,
+      "skipped_rows": 0,
+      "match_count": 40,
+      "classes": [
+        "CENTRAL_BUILDUP",
+        "DIRECT_PLAY",
+        "POSSESSION_RECYCLING"
+      ],
+      "confusion_matrix": {
+        "labels": [
+          "CENTRAL_BUILDUP",
+          "DIRECT_PLAY",
+          "POSSESSION_RECYCLING"
+        ],
+        "matrix": [
+          [
+            11,
+            0,
+            0
+          ],
+          [
+            0,
+            19,
+            0
+          ],
+          [
+            0,
+            0,
+            24
+          ]
+        ]
+      },
+      "per_class_metrics": [
+        {
+          "label": "CENTRAL_BUILDUP",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 11
+        },
+        {
+          "label": "DIRECT_PLAY",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 19
+        },
+        {
+          "label": "POSSESSION_RECYCLING",
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 24
+        }
+      ]
+    },
+    "comparison": {
+      "latest_finetune": {
+        "accuracy": 0.9814814814814815,
+        "f1": 0.98168705245486
+      },
+      "delta": {
+        "accuracy": 0.01851851851851849,
+        "f1_weighted": 0.018312947545140013
+      }
+    }
+  },
+  "finetune_reference": {
+    "dataset": {
+      "generated_at": "2026-03-10T16:29:45.321200+00:00",
+      "total_matches": 661,
+      "total_pass_rows": 624859,
+      "total_action_rows": 2362742,
+      "holdout": {
+        "enabled": true,
+        "competition_contains": "World Cup",
+        "season_contains": "2022",
+        "match_ids": null,
+        "reason": "ok",
+        "train_size": 561124,
+        "holdout_size": 63735,
+        "holdout_matches": 64
+      }
+    },
+    "pass_difficulty": {
+      "before": {
+        "name": "Tuned RandomForest",
+        "cv_accuracy_mean": 0.8786412600340299,
+        "cv_f1_mean": 0.9300233502369037,
+        "holdout": {
+          "accuracy": 0.904055856279909,
+          "f1": 0.9467431915764538
+        }
+      },
+      "after": {
+        "accuracy": 0.9763866007688083,
+        "f1": 0.9866869532141499
+      },
+      "buckets": [
+        {
+          "bucket": "GENERAL",
+          "winner": "LightGBM",
+          "holdout": {
+            "accuracy": 0.9777830077665333,
+            "f1": 0.9874863020962211
+          }
+        },
+        {
+          "bucket": "SHORT",
+          "winner": "LightGBM",
+          "holdout": {
+            "accuracy": 0.9672945205479452,
+            "f1": 0.9813785707321829
+          }
+        },
+        {
+          "bucket": "MEDIUM",
+          "winner": "LightGBM",
+          "holdout": {
+            "accuracy": 0.9805086628165259,
+            "f1": 0.9897112707020372
+          }
+        },
+        {
+          "bucket": "LONG",
+          "winner": "LightGBM",
+          "holdout": {
+            "accuracy": 0.9791407652990745,
+            "f1": 0.9872088098263447
+          }
+        },
+        {
+          "bucket": "CROSS",
+          "winner": "CatBoost",
+          "holdout": {
+            "accuracy": 0.9556650246305419,
+            "f1": 0.9518716577540107
+          }
+        },
+        {
+          "bucket": "THROUGH_BALL",
+          "winner": "CatBoost",
+          "holdout": {
+            "accuracy": 0.9492753623188406,
+            "f1": 0.9213483146067416
+          }
+        },
+        {
+          "bucket": "SET_PIECE",
+          "winner": "CatBoost",
+          "holdout": {
+            "accuracy": 0.975485920757538,
+            "f1": 0.9860478309429681
+          }
+        }
+      ],
+      "bucket_count": 7,
+      "train_rows": 561124,
+      "holdout_rows": 63735
+    },
+    "tactical_classifier": {
+      "before": {
+        "name": "Tuned GradientBoosting",
+        "cv_accuracy_mean": 0.9271078431372549,
+        "cv_f1_mean": 0.9272656402749014,
+        "holdout": {
+          "accuracy": 0.921875,
+          "f1": 0.9179188866688867
+        }
+      },
+      "after": {
+        "accuracy": 0.9814814814814815,
+        "f1": 0.98168705245486
+      },
+      "winner": "SoftVotingEnsemble",
+      "candidate_results": [
+        {
+          "name": "GradientBoosting",
+          "accuracy": 0.9814814814814815,
+          "f1": 0.9816338077207644
+        },
+        {
+          "name": "XGBoost",
+          "accuracy": 1.0,
+          "f1": 1.0
+        },
+        {
+          "name": "RandomForest",
+          "accuracy": 1.0,
+          "f1": 1.0
+        },
+        {
+          "name": "SoftVotingEnsemble",
+          "accuracy": 0.9814814814814815,
+          "f1": 0.98168705245486
+        }
+      ],
+      "train_rows": 473,
+      "holdout_rows": 54,
+      "classes": [
+        "CENTRAL_BUILDUP",
+        "DIRECT_PLAY",
+        "KEY_PLAYER_DEPENDENCY",
+        "POSSESSION_RECYCLING"
+      ],
+      "silver_label_artifact": "backend/models/trained/tactical_silver_labels.csv"
+    },
+    "vaep": {
+      "before": {
+        "scoring_accuracy": 0.729379461834157,
+        "conceding_accuracy": 0.8810543657331137
+      },
+      "after": {
+        "scoring_accuracy": 0.9935393689378313,
+        "conceding_accuracy": 0.9974941615669161
+      },
+      "train_metrics": {
+        "scoring_accuracy": 0.9954604589365295,
+        "conceding_accuracy": 0.9963462230464749,
+        "samples_used": 143873,
+        "train_matches": 477,
+        "test_matches": 120
+      },
+      "holdout_rows": 234652,
+      "holdout_info": {
+        "enabled": true,
+        "competition_contains": "World Cup",
+        "season_contains": "2022",
+        "match_ids": null,
+        "reason": "ok",
+        "train_size": 2128090,
+        "holdout_size": 234652,
+        "holdout_matches": 64
+      }
+    },
+    "runtime_smoke_check": {
+      "vaep_trained": true,
+      "pass_model_trained": true,
+      "pattern_classifier_trained": true,
+      "pattern_kmeans_trained": true
+    }
+  }
+}

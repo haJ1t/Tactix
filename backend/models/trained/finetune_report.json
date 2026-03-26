@@ -1,0 +1,175 @@
+{
+  "dataset": {
+    "generated_at": "2026-03-10T16:29:45.321200+00:00",
+    "total_matches": 661,
+    "total_pass_rows": 624859,
+    "total_action_rows": 2362742,
+    "holdout": {
+      "enabled": true,
+      "competition_contains": "World Cup",
+      "season_contains": "2022",
+      "match_ids": null,
+      "reason": "ok",
+      "train_size": 561124,
+      "holdout_size": 63735,
+      "holdout_matches": 64
+    }
+  },
+  "pass_difficulty": {
+    "before": {
+      "name": "Tuned RandomForest",
+      "cv_accuracy_mean": 0.8786412600340299,
+      "cv_f1_mean": 0.9300233502369037,
+      "holdout": {
+        "accuracy": 0.904055856279909,
+        "f1": 0.9467431915764538
+      }
+    },
+    "after": {
+      "accuracy": 0.9763866007688083,
+      "f1": 0.9866869532141499
+    },
+    "buckets": [
+      {
+        "bucket": "GENERAL",
+        "winner": "LightGBM",
+        "holdout": {
+          "accuracy": 0.9777830077665333,
+          "f1": 0.9874863020962211
+        }
+      },
+      {
+        "bucket": "SHORT",
+        "winner": "LightGBM",
+        "holdout": {
+          "accuracy": 0.9672945205479452,
+          "f1": 0.9813785707321829
+        }
+      },
+      {
+        "bucket": "MEDIUM",
+        "winner": "LightGBM",
+        "holdout": {
+          "accuracy": 0.9805086628165259,
+          "f1": 0.9897112707020372
+        }
+      },
+      {
+        "bucket": "LONG",
+        "winner": "LightGBM",
+        "holdout": {
+          "accuracy": 0.9791407652990745,
+          "f1": 0.9872088098263447
+        }
+      },
+      {
+        "bucket": "CROSS",
+        "winner": "CatBoost",
+        "holdout": {
+          "accuracy": 0.9556650246305419,
+          "f1": 0.9518716577540107
+        }
+      },
+      {
+        "bucket": "THROUGH_BALL",
+        "winner": "CatBoost",
+        "holdout": {
+          "accuracy": 0.9492753623188406,
+          "f1": 0.9213483146067416
+        }
+      },
+      {
+        "bucket": "SET_PIECE",
+        "winner": "CatBoost",
+        "holdout": {
+          "accuracy": 0.975485920757538,
+          "f1": 0.9860478309429681
+        }
+      }
+    ],
+    "bucket_count": 7,
+    "train_rows": 561124,
+    "holdout_rows": 63735
+  },
+  "tactical_classifier": {
+    "before": {
+      "name": "Tuned GradientBoosting",
+      "cv_accuracy_mean": 0.9271078431372549,
+      "cv_f1_mean": 0.9272656402749014,
+      "holdout": {
+        "accuracy": 0.921875,
+        "f1": 0.9179188866688867
+      }
+    },
+    "after": {
+      "accuracy": 0.9814814814814815,
+      "f1": 0.98168705245486
+    },
+    "winner": "SoftVotingEnsemble",
+    "candidate_results": [
+      {
+        "name": "GradientBoosting",
+        "accuracy": 0.9814814814814815,
+        "f1": 0.9816338077207644
+      },
+      {
+        "name": "XGBoost",
+        "accuracy": 1.0,
+        "f1": 1.0
+      },
+      {
+        "name": "RandomForest",
+        "accuracy": 1.0,
+        "f1": 1.0
+      },
+      {
+        "name": "SoftVotingEnsemble",
+        "accuracy": 0.9814814814814815,
+        "f1": 0.98168705245486
+      }
+    ],
+    "train_rows": 473,
+    "holdout_rows": 54,
+    "classes": [
+      "CENTRAL_BUILDUP",
+      "DIRECT_PLAY",
+      "KEY_PLAYER_DEPENDENCY",
+      "POSSESSION_RECYCLING"
+    ],
+    "silver_label_artifact": "backend/models/trained/tactical_silver_labels.csv"
+  },
+  "vaep": {
+    "before": {
+      "scoring_accuracy": 0.729379461834157,
+      "conceding_accuracy": 0.8810543657331137
+    },
+    "after": {
+      "scoring_accuracy": 0.9935393689378313,
+      "conceding_accuracy": 0.9974941615669161
+    },
+    "train_metrics": {
+      "scoring_accuracy": 0.9954604589365295,
+      "conceding_accuracy": 0.9963462230464749,
+      "samples_used": 143873,
+      "train_matches": 477,
+      "test_matches": 120
+    },
+    "holdout_rows": 234652,
+    "holdout_info": {
+      "enabled": true,
+      "competition_contains": "World Cup",
+      "season_contains": "2022",
+      "match_ids": null,
+      "reason": "ok",
+      "train_size": 2128090,
+      "holdout_size": 234652,
+      "holdout_matches": 64
+    }
+  },
+  "runtime_smoke_check": {
+    "vaep_trained": true,
+    "pass_model_trained": true,
+    "pattern_classifier_trained": true,
+    "pattern_kmeans_trained": true
+  }
+}

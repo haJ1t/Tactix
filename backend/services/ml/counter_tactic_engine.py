@@ -170,6 +170,19 @@ class CounterTacticEngine:
         ]
     }
 
+    def _normalize_pattern_type(self, raw_pattern_type) -> str:
+        """Return a safe string label for rule-based or ML pattern output."""
+        if isinstance(raw_pattern_type, str):
+            return raw_pattern_type
+
+        if isinstance(raw_pattern_type, np.generic):
+            raw_pattern_type = raw_pattern_type.item()
+
+        if raw_pattern_type is None:
+            return 'UNKNOWN'
+
+        return str(raw_pattern_type)
+
     def __init__(self, vaep_model=None, pass_model=None):
         self.vaep_model = vaep_model
         self.pass_model = pass_model
@@ -185,7 +198,7 @@ class CounterTacticEngine:
         recommendations = []
 
         for pattern in patterns:
-            pattern_type = pattern.get('pattern_type', pattern.get('type', ''))
+            pattern_type = self._normalize_pattern_type(pattern.get('pattern_type', pattern.get('type', '')))
 
             if pattern_type in self.TACTIC_TEMPLATES:
                 templates = self.TACTIC_TEMPLATES[pattern_type]
@@ -258,7 +271,7 @@ class CounterTacticEngine:
             'recommendation': recommendation_text,
             'priority': template['priority'],
             'confidence': pattern.get('confidence_score', 0.5),
-            'pattern_type': pattern.get('pattern_type', ''),
+            'pattern_type': self._normalize_pattern_type(pattern.get('pattern_type', '')),
             'target_player_id': key_player_id,
             'target_player_name': key_player_name if key_player_id else None
         }
@@ -374,7 +387,7 @@ class CounterTacticEngine:
         if patterns:
             summary_parts.append("### Detected Playing Patterns\n\n")
             for p in patterns[:4]:
-                pattern_name = p.get('pattern_type', 'Unknown').replace('_', ' ').title()
+                pattern_name = self._normalize_pattern_type(p.get('pattern_type', 'Unknown')).replace('_', ' ').title()
                 confidence = p.get('confidence_score', 0)
                 description = p.get('description', '')
                 summary_parts.append(f"- **{pattern_name}** ({confidence:.0%}): {description}\n")

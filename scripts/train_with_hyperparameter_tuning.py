@@ -8,11 +8,13 @@ import sys
 import pandas as pd
 import numpy as np
 from collections import defaultdict
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_score
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, GroupKFold, cross_val_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score, classification_report, f1_score
 import joblib
 import warnings
 warnings.filterwarnings('ignore')
@@ -27,6 +29,7 @@ from backend.models.event import Event
 from backend.models.pass_event import PassEvent
 from backend.services.network_builder import NetworkBuilder
 from backend.services.ml.tactical_classifier import TacticalPatternClassifier
+from backend.services.ml.holdout_utils import split_holdout
 
 
 def get_all_passes_from_db():
@@ -34,7 +37,7 @@ def get_all_passes_from_db():
     print("Loading all passes from database...")
     db = SessionLocal()
     try:
-        passes = db.query(PassEvent).join(Event).all()
+        passes = db.query(PassEvent).join(Event).join(Match, Event.match_id == Match.match_id).all()
         
         passes_data = []
         for p in passes:
@@ -42,6 +45,7 @@ def get_all_passes_from_db():
             if event is None:
                 continue
                 
+            match = event.match
             passes_data.append({
                 'match_id': event.match_id,
                 'event_id': p.event_id,
@@ -58,6 +62,8 @@ def get_all_passes_from_db():
                 'pass_type': p.pass_type,
                 'pass_height': p.pass_height,
                 'body_part': p.body_part,
+                'competition': match.competition if match else None,
+                'season': match.season if match else None,
                 'minute': event.minute,
                 'second': event.second,
                 'period': event.period,
@@ -69,14 +75,14 @@ def get_all_passes_from_db():
         db.close()
 
 
-def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame) -> dict:
+def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame, holdout_df: pd.DataFrame = None) -> dict:
     """Train Pass Difficulty Model with hyperparameter tuning."""
     print("\n" + "="*60)
     print("PASS DIFFICULTY MODEL - HYPERPARAMETER TUNING")
     print("="*60)
     
     # Prepare features
-    df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y', 'recipient_id'])
+    df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
     
     # Calculate pass length if missing
     if 'pass_length' not in df.columns or df['pass_length'].isna().all():
@@ -92,15 +98,18 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame) -> dict:
     df['is_in_final_third'] = (df['location_x'] > 80).astype(int)
     df['is_long_pass'] = (df['pass_length'] > 30).astype(int)
     
-    feature_cols = ['location_x', 'location_y', 'end_location_x', 'end_location_y', 
-                    'pass_length', 'dx', 'dy', 'is_forward', 'is_in_final_third', 'is_long_pass']
+    num_cols = ['location_x', 'location_y', 'end_location_x', 'end_location_y', 
+                'pass_length', 'dx', 'dy', 'is_forward', 'is_in_final_third', 'is_long_pass']
+    cat_cols = ['pass_type', 'pass_height', 'body_part']
     
-    X = df[feature_cols].fillna(0)
+    X = df[num_cols + cat_cols].copy()
+    X[cat_cols] = X[cat_cols].fillna('Unknown')
     # Target: 1 = successful (no outcome or Complete), 0 = failed
     y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int)
+    groups = df['match_id'].values
     
     print(f"  Samples: {len(X):,}")
-    print(f"  Features: {len(feature_cols)}")
+    print(f"  Features: {len(num_cols)} numeric + {len(cat_cols)} categorical")
     print(f"  Class balance: {y.sum()/len(y):.1%} successful")
     
     # Sample for faster tuning (use 50k samples max)
@@ -108,9 +117,11 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame) -> dict:
         sample_idx = np.random.choice(len(X), 50000, replace=False)
         X_sample = X.iloc[sample_idx]
         y_sample = y.iloc[sample_idx]
+        groups_sample = groups[sample_idx]
     else:
         X_sample = X
         y_sample = y
+        groups_sample = groups
     
     # Hyperparameter grid
     param_grid = {
@@ -126,32 +137,43 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame) -> dict:
     
     print("\n  Running GridSearchCV (this may take a few minutes)...")
     
-    rf = RandomForestClassifier(random_state=42, n_jobs=-1)
+    preprocessor = ColumnTransformer(
+        [('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)],
+        remainder='passthrough'
+    )
+    rf = Pipeline([
+        ('preprocess', preprocessor),
+        ('model', RandomForestClassifier(random_state=42, n_jobs=-1))
+    ])
     
     grid_search = GridSearchCV(
         rf, 
-        param_grid, 
-        cv=3, 
+        {f"model__{k}": v for k, v in param_grid.items()}, 
+        cv=GroupKFold(n_splits=3), 
         scoring='accuracy',
         n_jobs=-1,
         verbose=0
     )
     
-    grid_search.fit(X_sample, y_sample)
+    grid_search.fit(X_sample, y_sample, groups=groups_sample)
     
+    best_params = {k.replace("model__", ""): v for k, v in grid_search.best_params_.items()}
     print("\n  Best Parameters:")
-    for key, value in grid_search.best_params_.items():
+    for key, value in best_params.items():
         print(f"    {key}: {value}")
     
     print(f"\n  Best CV Score: {grid_search.best_score_:.2%}")
     
     # Train final model with best params on full data
     print("\n  Training final model on full data...")
-    best_model = RandomForestClassifier(**grid_search.best_params_, random_state=42, n_jobs=-1)
+    best_model = Pipeline([
+        ('preprocess', preprocessor),
+        ('model', RandomForestClassifier(**best_params, random_state=42, n_jobs=-1))
+    ])
     best_model.fit(X, y)
     
     # Cross-validation on full model
-    cv_scores = cross_val_score(best_model, X, y, cv=5, scoring='accuracy', n_jobs=-1)
+    cv_scores = cross_val_score(best_model, X, y, cv=GroupKFold(n_splits=5), groups=groups, scoring='accuracy', n_jobs=-1)
     print(f"  5-Fold CV Accuracy: {cv_scores.mean():.2%} (+/- {cv_scores.std()*2:.2%})")
     
     # Save model
@@ -160,22 +182,53 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame) -> dict:
     
     model_data = {
         'model': best_model,
-        'best_params': grid_search.best_params_,
+        'best_params': best_params,
         'cv_scores': cv_scores,
-        'feature_cols': feature_cols
+        'num_cols': num_cols,
+        'cat_cols': cat_cols
     }
     joblib.dump(model_data, os.path.join(models_dir, 'pass_difficulty_tuned.joblib'))
     print(f"  Model saved to {models_dir}/pass_difficulty_tuned.joblib")
     
+    holdout_metrics = None
+    if holdout_df is not None and not holdout_df.empty:
+        df_hold = holdout_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
+        if not df_hold.empty:
+            if 'pass_length' not in df_hold.columns or df_hold['pass_length'].isna().all():
+                df_hold['pass_length'] = np.sqrt(
+                    (df_hold['end_location_x'] - df_hold['location_x'])**2 + 
+                    (df_hold['end_location_y'] - df_hold['location_y'])**2
+                )
+            df_hold['dx'] = df_hold['end_location_x'] - df_hold['location_x']
+            df_hold['dy'] = df_hold['end_location_y'] - df_hold['location_y']
+            df_hold['is_forward'] = (df_hold['dx'] > 0).astype(int)
+            df_hold['is_in_final_third'] = (df_hold['location_x'] > 80).astype(int)
+            df_hold['is_long_pass'] = (df_hold['pass_length'] > 30).astype(int)
+            
+            X_hold = df_hold[num_cols + cat_cols].copy()
+            X_hold[cat_cols] = X_hold[cat_cols].fillna('Unknown')
+            y_hold = (df_hold['pass_outcome'].isna() | (df_hold['pass_outcome'] == 'Complete')).astype(int)
+            
+            y_pred = best_model.predict(X_hold)
+            holdout_metrics = {
+                'accuracy': accuracy_score(y_hold, y_pred),
+                'f1': f1_score(y_hold, y_pred)
+            }
+            
+            print("\n  Holdout Performance (Fixed Split):")
+            print(f"    Accuracy: {holdout_metrics['accuracy']:.2%}")
+            print(f"    F1 Score: {holdout_metrics['f1']:.2%}")
+    
     return {
-        'best_params': grid_search.best_params_,
+        'best_params': best_params,
         'best_cv_score': grid_search.best_score_,
         'final_cv_mean': cv_scores.mean(),
-        'final_cv_std': cv_scores.std()
+        'final_cv_std': cv_scores.std(),
+        'holdout': holdout_metrics
     }
 
 
-def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame) -> dict:
+def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame, holdout_df: pd.DataFrame = None) -> dict:
     """Train Tactical Pattern Classifier with hyperparameter tuning."""
     print("\n" + "="*60)
     print("TACTICAL CLASSIFIER - HYPERPARAMETER TUNING")
@@ -192,34 +245,45 @@ def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame) -> dict:
     if 'recipient_name' not in passes_df.columns:
         passes_df['recipient_name'] = passes_df['recipient_id'].apply(lambda x: f'Player {x}' if pd.notna(x) else None)
     
-    features_list = []
-    grouped = passes_df.groupby(['match_id', 'team_id'])
-    
-    for i, ((match_id, team_id), team_passes) in enumerate(grouped):
-        # Get successful passes
-        mask = (
-            team_passes['recipient_id'].notna() & 
-            (team_passes['pass_outcome'].isna() | (team_passes['pass_outcome'] == 'Complete'))
-        )
-        successful = team_passes[mask].copy()
+    def build_features_and_labels(df: pd.DataFrame):
+        features_list = []
+        labels = []
+        groups = []
+        grouped = df.groupby(['match_id', 'team_id'])
         
-        if len(successful) < 10:
-            continue
-        
-        try:
-            G = builder.build_pass_network(successful)
-            if G.number_of_nodes() < 5:
+        for i, ((match_id, team_id), team_passes) in enumerate(grouped):
+            # Get successful passes
+            mask = (
+                team_passes['recipient_id'].notna() & 
+                (team_passes['pass_outcome'].isna() | (team_passes['pass_outcome'] == 'Complete'))
+            )
+            successful = team_passes[mask].copy()
+            
+            if len(successful) < 10:
                 continue
             
-            node_positions = {}
-            for node in G.nodes():
-                node_data = G.nodes[node]
-                node_positions[node] = (node_data.get('x', 60), node_data.get('y', 40))
-            
-            features = classifier.extract_network_features(G, node_positions)
-            features_list.append(features)
-        except:
-            continue
+            try:
+                G = builder.build_pass_network(successful)
+                if G.number_of_nodes() < 5:
+                    continue
+                
+                node_positions = {}
+                for node in G.nodes():
+                    node_data = G.nodes[node]
+                    node_positions[node] = (node_data.get('x', 60), node_data.get('y', 40))
+                
+                features = classifier.extract_network_features(G, node_positions)
+                patterns = classifier.detect_patterns_rule_based(features)
+                label = patterns[0]['pattern_type'] if patterns else 'BALANCED_ATTACK'
+                features_list.append(features)
+                labels.append(label)
+                groups.append(match_id)
+            except:
+                continue
+        
+        return features_list, labels, groups
+    
+    features_list, labels, groups = build_features_and_labels(passes_df)
     
     print(f"  Built {len(features_list)} network feature samples")
     
@@ -229,15 +293,6 @@ def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame) -> dict:
     # Prepare data for classification
     X = pd.DataFrame(features_list)
     feature_cols = list(X.columns)
-    
-    # Generate pseudo-labels using rule-based detection
-    labels = []
-    for features in features_list:
-        patterns = classifier.detect_patterns_rule_based(features)
-        if patterns:
-            labels.append(patterns[0]['pattern_type'])
-        else:
-            labels.append('BALANCED_ATTACK')
     
     y = pd.Series(labels)
     
@@ -298,14 +353,14 @@ def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame) -> dict:
         gb,
         param_grid,
         n_iter=30,
-        cv=3,
+        cv=GroupKFold(n_splits=3),
         scoring='accuracy',
         random_state=42,
         n_jobs=-1,
         verbose=0
     )
     
-    random_search.fit(X_scaled, y)
+    random_search.fit(X_scaled, y, groups=groups)
     
     print("\n    Best Parameters:")
     for key, value in random_search.best_params_.items():
@@ -314,8 +369,29 @@ def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame) -> dict:
     print(f"\n    Best CV Score: {random_search.best_score_:.2%}")
     
     # Cross-validation
-    cv_scores = cross_val_score(random_search.best_estimator_, X_scaled, y, cv=5, scoring='accuracy')
+    cv_scores = cross_val_score(random_search.best_estimator_, X_scaled, y, cv=GroupKFold(n_splits=5), groups=groups, scoring='accuracy')
     print(f"    5-Fold CV Accuracy: {cv_scores.mean():.2%} (+/- {cv_scores.std()*2:.2%})")
+    
+    # Holdout evaluation
+    holdout_metrics = None
+    if holdout_df is not None and not holdout_df.empty:
+        holdout_features, holdout_labels, _ = build_features_and_labels(holdout_df)
+        if holdout_features:
+            X_hold = pd.DataFrame(holdout_features)
+            X_hold_scaled = scaler.transform(X_hold)
+            y_hold = pd.Series(holdout_labels)
+            
+            random_search.best_estimator_.fit(X_scaled, y)
+            y_pred = random_search.best_estimator_.predict(X_hold_scaled)
+            
+            holdout_metrics = {
+                'accuracy': accuracy_score(y_hold, y_pred),
+                'f1': f1_score(y_hold, y_pred, average='weighted')
+            }
+            
+            print("\n  Holdout Performance (Fixed Split):")
+            print(f"    Accuracy: {holdout_metrics['accuracy']:.2%}")
+            print(f"    F1 Score: {holdout_metrics['f1']:.2%}")
     
     # Save models
     models_dir = 'backend/models/trained'
@@ -343,7 +419,8 @@ def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame) -> dict:
             'best_params': random_search.best_params_,
             'best_cv_score': random_search.best_score_,
             'final_cv_mean': cv_scores.mean(),
-            'final_cv_std': cv_scores.std()
+            'final_cv_std': cv_scores.std(),
+            'holdout': holdout_metrics
         }
     }
 
@@ -368,11 +445,18 @@ def main():
     print(f"\nTotal passes: {len(passes_df):,}")
     print(f"Total matches: {passes_df['match_id'].nunique()}")
     
+    train_df, holdout_df, holdout_info = split_holdout(passes_df)
+    if holdout_info.get("enabled"):
+        print("\n  Holdout Split:")
+        print(f"    Rule: competition contains '{holdout_info['competition_contains']}', season contains '{holdout_info['season_contains']}'")
+        print(f"    Holdout passes: {holdout_info['holdout_size']:,} from {holdout_info['holdout_matches']} matches")
+        print(f"    Train passes: {holdout_info['train_size']:,}")
+    
     # Train Pass Difficulty with tuning
-    pass_results = train_pass_difficulty_with_tuning(passes_df)
+    pass_results = train_pass_difficulty_with_tuning(train_df, holdout_df)
     
     # Train Tactical Classifier with tuning
-    tactical_results = train_tactical_classifier_with_tuning(passes_df)
+    tactical_results = train_tactical_classifier_with_tuning(train_df, holdout_df)
     
     # Summary
     print("\n" + "="*60)
