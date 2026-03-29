@@ -1,43 +1,67 @@
 import { useTeamDetailsContext } from '@/features/teams/pages/TeamDetailsPage';
+import { FadeInUp, GlassCard, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
+import { Shapes, Lightbulb } from 'lucide-react';
 
 export default function TeamPatternsTab() {
     const { aggregateAnalysis, season } = useTeamDetailsContext();
 
     return (
-        <div className="grid grid-2">
-            <div className="card">
-                <div className="card-header">
-                    <h3 className="card-title">Common Patterns</h3>
-                    <span className="results-count">{season}</span>
-                </div>
-                <div className="card-body">
-                    <div className="pattern-list">
-                        {aggregateAnalysis.commonPatterns.map((pattern) => (
-                            <div className="pattern-pill" key={pattern.pattern_type}>
-                                <span>{pattern.pattern_type.replace(/_/g, ' ')}</span>
-                                <span className="pattern-score">{pattern.count} matches</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Common Patterns */}
+            <FadeInUp delay={0}>
+                <GlassCard hover={false} className="p-6 h-full">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/15">
+                                <Shapes className="h-4.5 w-4.5 text-blue-400" />
                             </div>
-                        ))}
+                            <h3 className="text-lg font-semibold text-white">Common Patterns</h3>
+                        </div>
+                        <span className="text-sm text-[#94A3B8]">{season}</span>
                     </div>
-                </div>
-            </div>
 
-            <div className="card">
-                <div className="card-header">
-                    <h3 className="card-title">Suggested Tactics</h3>
-                    <span className="results-count">{season}</span>
-                </div>
-                <div className="card-body">
-                    <div className="tactic-list">
-                        {aggregateAnalysis.suggestedTactics.map((tactic, index) => (
-                            <div className="tactic-item" key={`${tactic.tactic_type}-${index}`}>
-                                <span className="tactic-rank">{index + 1}</span>
-                                <span>{tactic.recommendation}</span>
-                            </div>
+                    <StaggerContainer className="flex flex-wrap gap-3">
+                        {aggregateAnalysis.commonPatterns.map((pattern) => (
+                            <StaggerItem key={pattern.pattern_type}>
+                                <div className="tag-glow inline-flex items-center gap-2 px-4 py-2">
+                                    <span className="text-sm text-white">{pattern.pattern_type.replace(/_/g, ' ')}</span>
+                                    <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-500/20 px-1.5 text-xs font-bold text-primary-400">
+                                        {pattern.count}
+                                    </span>
+                                </div>
+                            </StaggerItem>
                         ))}
+                    </StaggerContainer>
+                </GlassCard>
+            </FadeInUp>
+
+            {/* Suggested Tactics */}
+            <FadeInUp delay={0.1}>
+                <GlassCard hover={false} className="p-6 h-full">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15">
+                                <Lightbulb className="h-4.5 w-4.5 text-amber-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-white">Suggested Tactics</h3>
+                        </div>
+                        <span className="text-sm text-[#94A3B8]">{season}</span>
                     </div>
-                </div>
-            </div>
+
+                    <StaggerContainer className="space-y-3">
+                        {aggregateAnalysis.suggestedTactics.map((tactic, index) => (
+                            <StaggerItem key={`${tactic.tactic_type}-${index}`}>
+                                <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-xs font-bold text-amber-400">
+                                        {index + 1}
+                                    </span>
+                                    <p className="text-sm text-[#94A3B8] leading-relaxed">{tactic.recommendation}</p>
+                                </div>
+                            </StaggerItem>
+                        ))}
+                    </StaggerContainer>
+                </GlassCard>
+            </FadeInUp>
         </div>
     );
 }

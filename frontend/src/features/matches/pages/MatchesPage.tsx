@@ -4,6 +4,9 @@ import { useMatches } from '@/features/matches/hooks/useMatches';
 import { LoadingState } from '@/shared/ui/LoadingState';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { formatMatchDate } from '@/shared/lib/format';
+import { PageTransition, FadeInUp, StaggerContainer, StaggerItem, GlassCard, FloatingOrb, AnimatedCounter } from '@/shared/ui/motion';
+import { motion } from 'framer-motion';
+import { Search, SlidersHorizontal, Play, ExternalLink } from 'lucide-react';
 
 export default function MatchesPage() {
     const navigate = useNavigate();
@@ -22,14 +25,6 @@ export default function MatchesPage() {
         }),
         [matchesQuery.data]
     );
-    const heroSignals = useMemo(
-        () => [
-            `${summary.competitions} competitions`,
-            `${summary.seasons} season views`,
-            'Analyst-grade discovery',
-        ],
-        [summary.competitions, summary.seasons]
-    );
 
     if (matchesQuery.isLoading) {
         return <LoadingState title="Loading matches" description="Preparing the match discovery workspace." />;
@@ -46,156 +41,145 @@ export default function MatchesPage() {
     }
 
     return (
-        <div className="workspace-stack matches-browser matches-editorial">
-            <section className="matches-hero card theater-hero theater-hero-browser">
-                <div className="card-body matches-hero-body">
-                    <div className="matches-hero-copy">
-                        <span className="hero-eyebrow">Match Discovery</span>
-                        <h1 className="page-title">Matches</h1>
-                        <p className="page-subtitle">
-                            Browse the library, narrow the right fixture quickly, and move into a single match workspace when the story is worth investigating.
-                        </p>
-                        <div className="floating-signal-row">
-                            {heroSignals.map((signal) => (
-                                <span key={signal} className="floating-signal-chip">
-                                    {signal}
-                                </span>
-                            ))}
+        <PageTransition>
+            <div className="space-y-6">
+                {/* Hero */}
+                <div className="relative overflow-hidden rounded-2xl p-8" style={{ background: 'linear-gradient(135deg, #111118 0%, #0A0A0F 50%, #0A0F1A 100%)' }}>
+                    <FloatingOrb color="#3B82F6" size={250} top="-15%" left="75%" />
+                    <FloatingOrb color="#22C55E" size={150} top="70%" left="-3%" delay={1} />
+
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div className="space-y-2">
+                            <span className="text-xs font-semibold uppercase tracking-widest text-primary-400">Match Discovery</span>
+                            <h1 className="text-2xl font-bold text-white">Matches</h1>
+                            <p className="text-sm text-[#94A3B8] max-w-lg">Browse the library, narrow the right fixture, and move into a single match workspace.</p>
                         </div>
-                    </div>
-                    <div className="matches-hero-side">
-                        <span className="hero-kicker">Visible now</span>
-                        <strong>{summary.filteredMatches}</strong>
-                        <p>{summary.totalMatches} matches in the current catalog</p>
+                        <div className="flex gap-3 items-center">
+                            <div className="glass-card px-4 py-2 text-center">
+                                <span className="text-2xl font-bold text-white block"><AnimatedCounter value={summary.filteredMatches} /></span>
+                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider">Visible</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </section>
 
-            <section className="card matches-control-surface theater-rail">
-                <div className="card-body workspace-stack">
-                    <div className="matches-toolbar-header">
-                        <div>
-                            <span className="section-eyebrow">Control Surface</span>
-                            <p className="section-support">Search, refine, and sort before stepping into the workspace.</p>
+                {/* Controls */}
+                <FadeInUp>
+                    <GlassCard className="p-5 space-y-4" hover={false}>
+                        <div className="flex items-center gap-2 text-[#94A3B8] mb-2">
+                            <SlidersHorizontal size={14} />
+                            <span className="text-xs font-medium uppercase tracking-wider">Control Surface</span>
                         </div>
-                        <span className="toolbar-caption">Fast scan</span>
-                    </div>
 
-                    <div className="matches-toolbar">
-                        <div className="search-box matches-search-box">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8" />
-                                <path d="m21 21-4.35-4.35" />
-                            </svg>
+                        <div className="relative">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A4A5A]" />
                             <input
-                                className="search-input"
-                                placeholder="Search team, competition, or season"
+                                className="form-input-dark pl-10"
+                                placeholder="Search team, competition, or season..."
                                 value={search}
-                                onChange={(event) => setSearch(event.target.value)}
+                                onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
 
-                        <div className="matches-toolbar-selects">
-                            <select className="form-select" value={competition} onChange={(event) => setCompetition(event.target.value)}>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <select className="form-select-dark" value={competition} onChange={(e) => setCompetition(e.target.value)}>
                                 <option value="all">All competitions</option>
                                 {matchesQuery.data?.competitions.map((item) => (
                                     <option key={item} value={item}>{item}</option>
                                 ))}
                             </select>
-                            <select className="form-select" value={season} onChange={(event) => setSeason(event.target.value)}>
+                            <select className="form-select-dark" value={season} onChange={(e) => setSeason(e.target.value)}>
                                 <option value="all">All seasons</option>
                                 {matchesQuery.data?.seasons.map((item) => (
                                     <option key={item} value={item}>{item}</option>
                                 ))}
                             </select>
-                            <select className="form-select" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
+                            <select className="form-select-dark" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
                                 <option value="date-desc">Newest first</option>
                                 <option value="date-asc">Oldest first</option>
                                 <option value="competition">Competition</option>
                                 <option value="season">Season</option>
                             </select>
                         </div>
-                    </div>
 
-                    <div className="editorial-stat-row">
-                        <div className="editorial-stat">
-                            <span className="editorial-stat-label">Catalog size</span>
-                            <strong>{summary.totalMatches}</strong>
+                        <div className="flex gap-6">
+                            <div>
+                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Catalog</span>
+                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.totalMatches} /></span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Visible</span>
+                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.filteredMatches} /></span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Competitions</span>
+                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.competitions} /></span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Seasons</span>
+                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.seasons} /></span>
+                            </div>
                         </div>
-                        <div className="editorial-stat">
-                            <span className="editorial-stat-label">Visible results</span>
-                            <strong>{summary.filteredMatches}</strong>
-                        </div>
-                        <div className="editorial-stat">
-                            <span className="editorial-stat-label">Competitions</span>
-                            <strong>{summary.competitions}</strong>
-                        </div>
-                        <div className="editorial-stat">
-                            <span className="editorial-stat-label">Seasons</span>
-                            <strong>{summary.seasons}</strong>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    </GlassCard>
+                </FadeInUp>
 
-            <section className="card theater-results-shell">
-                <div className="card-header matches-results-header theater-results-header">
-                    <div>
-                        <h3 className="card-title">Match Library</h3>
-                        <p className="card-subtitle">Each row opens a full workspace or starts analysis directly.</p>
-                    </div>
-                    <span className="results-count">{summary.filteredMatches} matches</span>
-                </div>
-                <div className="card-body workspace-stack">
-                    {matchesQuery.data?.matches.length ? (
-                        <div className="match-list editorial-match-list">
-                            {matchesQuery.data.matches.map((match) => (
-                                <article key={match.match_id} className="editorial-match-row">
-                                    <div className="editorial-match-main">
-                                        <div className="editorial-match-teams">
-                                            <div className="editorial-team-block">
-                                                <span className="editorial-team-name">{match.home_team?.team_name || 'Home'}</span>
-                                                <span className="editorial-team-role">Home</span>
+                {/* Match List */}
+                <FadeInUp delay={0.1}>
+                    <GlassCard className="p-5" hover={false}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold text-white">Match Library</h3>
+                            <span className="text-xs text-[#94A3B8]">{summary.filteredMatches} matches</span>
+                        </div>
+
+                        {matchesQuery.data?.matches.length ? (
+                            <StaggerContainer className="space-y-2">
+                                {matchesQuery.data.matches.map((match) => (
+                                    <StaggerItem key={match.match_id}>
+                                        <motion.div
+                                            className="flex items-center justify-between p-4 rounded-xl border border-white/[0.04] hover:border-primary-500/20 hover:bg-white/[0.02] transition-all cursor-pointer group"
+                                            whileHover={{ x: 4 }}
+                                            transition={{ duration: 0.15 }}
+                                        >
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-4 mb-1.5">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-sm font-semibold text-white">{match.home_team?.team_name || 'Home'}</span>
+                                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.04]">
+                                                            <span className="text-lg font-bold text-white">{match.home_score}</span>
+                                                            <span className="text-[#94A3B8] text-sm">:</span>
+                                                            <span className="text-lg font-bold text-white">{match.away_score}</span>
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-white">{match.away_team?.team_name || 'Away'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+                                                    <span className="tag-glow text-[10px]">{match.competition || 'Competition'}</span>
+                                                    <span>{match.season || 'Season n/a'}</span>
+                                                    <span className="text-white/20">·</span>
+                                                    <span>{formatMatchDate(match.match_date)}</span>
+                                                </div>
                                             </div>
-                                            <div className="editorial-match-score">
-                                                <span className="editorial-score">{match.home_score}</span>
-                                                <span className="editorial-score-divider">:</span>
-                                                <span className="editorial-score">{match.away_score}</span>
-                                            </div>
-                                            <div className="editorial-team-block editorial-team-block-away">
-                                                <span className="editorial-team-name">{match.away_team?.team_name || 'Away'}</span>
-                                                <span className="editorial-team-role">Away</span>
-                                            </div>
-                                        </div>
 
-                                        <div className="editorial-match-meta">
-                                            <span className="editorial-meta-pill">{match.competition || 'Competition'}</span>
-                                            <span>{match.season || 'Season n/a'}</span>
-                                            <span className="meta-divider">•</span>
-                                            <span>{formatMatchDate(match.match_date)}</span>
-                                            <span className="editorial-link-hint">Workspace ready</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="editorial-match-actions">
-                                        <button className="btn btn-outline btn-sm" onClick={() => navigate(`/matches/${match.match_id}/overview`)}>
-                                            Open Match
-                                        </button>
-                                        <button className="btn btn-primary btn-sm btn-quiet-primary" onClick={() => navigate(`/matches/${match.match_id}/overview?run=1`)}>
-                                            Run Analysis
-                                        </button>
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="empty-state empty-state-editorial">
-                            <h3>No matches match the current view</h3>
-                            <p>Widen the search or reset one of the filters to bring more fixtures back into the discovery list.</p>
-                        </div>
-                    )}
-                </div>
-            </section>
-        </div>
+                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => navigate(`/matches/${match.match_id}/overview`)}>
+                                                    <ExternalLink size={14} />
+                                                </button>
+                                                <button className="btn-glow text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={() => navigate(`/matches/${match.match_id}/overview?run=1`)}>
+                                                    <Play size={12} /> Analyze
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    </StaggerItem>
+                                ))}
+                            </StaggerContainer>
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-sm text-[#94A3B8]">No matches match the current filters. Widen or reset to see more.</p>
+                            </div>
+                        )}
+                    </GlassCard>
+                </FadeInUp>
+            </div>
+        </PageTransition>
     );
 }

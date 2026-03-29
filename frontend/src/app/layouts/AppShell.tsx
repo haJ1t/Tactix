@@ -1,49 +1,13 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, Crosshair, Users, FileText, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 
 const navItems = [
-    {
-        label: 'Overview',
-        to: '/overview',
-        icon: (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M4 12.5 12 5l8 7.5" />
-                <path d="M6.5 10.5V19h11v-8.5" />
-            </svg>
-        ),
-    },
-    {
-        label: 'Matches',
-        to: '/matches',
-        icon: (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="12" cy="12" r="8.5" />
-                <path d="M12 3.5v17M3.5 12h17" />
-            </svg>
-        ),
-    },
-    {
-        label: 'Teams',
-        to: '/teams',
-        icon: (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M7.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                <path d="M16.5 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-                <path d="M3.5 18c.8-2.4 2.7-3.6 5.8-3.6S14.2 15.6 15 18" />
-                <path d="M13.8 18c.5-1.7 1.9-2.6 4.2-2.6 1.2 0 2.2.3 2.9.8" />
-            </svg>
-        ),
-    },
-    {
-        label: 'Reports',
-        to: '/reports',
-        icon: (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M7 4.5h7l3 3V19a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 19V6A1.5 1.5 0 0 1 7.5 4.5Z" />
-                <path d="M14 4.5V8h3.5" />
-                <path d="M8.5 11.5h7M8.5 15h7" />
-            </svg>
-        ),
-    },
+    { label: 'Overview', to: '/overview', icon: LayoutDashboard },
+    { label: 'Matches', to: '/matches', icon: Crosshair },
+    { label: 'Teams', to: '/teams', icon: Users },
+    { label: 'Reports', to: '/reports', icon: FileText },
 ];
 
 const sectionTitles: Record<string, { title: string; context: string }> = {
@@ -61,57 +25,127 @@ const getShellMeta = (pathname: string) => {
 export default function AppShell() {
     const location = useLocation();
     const meta = getShellMeta(location.pathname);
+    const [collapsed, setCollapsed] = useState(false);
 
     return (
-        <div className="app-layout">
-            <aside className="sidebar">
-                <div className="sidebar-logo">
-                    <div className="sidebar-mark">
-                        <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
-                            <circle cx="16" cy="16" r="12" stroke="white" strokeWidth="1.8" />
-                            <path d="M9.5 16h13M16 9.5v13M11.2 11.2l9.6 9.6M20.8 11.2l-9.6 9.6" stroke="white" strokeWidth="1.35" />
-                        </svg>
-                    </div>
-                    <div className="sidebar-brand-copy">
-                        <h1>Tactix</h1>
-                        <p className="sidebar-caption">Analyst workspace</p>
-                    </div>
+        <div className="flex h-screen overflow-hidden bg-[#0A0A0F]">
+            {/* Sidebar */}
+            <motion.aside
+                className="relative flex flex-col h-full border-r border-white/[0.04] bg-[#08080D]"
+                animate={{ width: collapsed ? 72 : 240 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+                {/* Logo */}
+                <div className="flex items-center gap-3 px-5 h-16 border-b border-white/[0.04]">
+                    <motion.div
+                        className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))' , border: '1px solid rgba(34,197,94,0.2)' }}
+                        animate={{ boxShadow: ['0 0 15px rgba(34,197,94,0.1)', '0 0 25px rgba(34,197,94,0.2)', '0 0 15px rgba(34,197,94,0.1)'] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                    >
+                        <Zap size={18} className="text-primary-400" />
+                    </motion.div>
+                    <AnimatePresence>
+                        {!collapsed && (
+                            <motion.div
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <h1 className="text-base font-bold text-white tracking-tight">Tactix</h1>
+                                <p className="text-[10px] text-muted uppercase tracking-widest">Analyst workspace</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
-                <nav className="sidebar-nav">
-                    {navItems.map((item) => (
-                        <NavLink
-                            key={item.to}
-                            to={item.to}
-                            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                        >
-                            <span className="nav-icon">{item.icon}</span>
-                            <span>{item.label}</span>
-                        </NavLink>
-                    ))}
+                {/* Nav */}
+                <nav className="flex-1 px-3 py-4 space-y-1">
+                    {navItems.map((item) => {
+                        const isActive = location.pathname.startsWith(item.to);
+                        const Icon = item.icon;
+
+                        return (
+                            <NavLink
+                                key={item.to}
+                                to={item.to}
+                                className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer"
+                                style={{ color: isActive ? '#F8FAFC' : '#64748B' }}
+                            >
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="sidebar-active"
+                                        className="absolute inset-0 rounded-xl"
+                                        style={{
+                                            background: 'rgba(34, 197, 94, 0.08)',
+                                            border: '1px solid rgba(34, 197, 94, 0.15)',
+                                        }}
+                                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                                    />
+                                )}
+                                <motion.div
+                                    className="relative z-10"
+                                    whileHover={{ scale: 1.1 }}
+                                    transition={{ duration: 0.15 }}
+                                >
+                                    <Icon size={20} />
+                                </motion.div>
+                                <AnimatePresence>
+                                    {!collapsed && (
+                                        <motion.span
+                                            className="relative z-10 text-sm font-medium"
+                                            initial={{ opacity: 0, x: -5 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -5 }}
+                                            transition={{ duration: 0.15 }}
+                                        >
+                                            {item.label}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                                {isActive && (
+                                    <motion.div
+                                        className="absolute right-0 top-1/2 w-0.5 h-5 rounded-full bg-primary-400 -translate-y-1/2"
+                                        layoutId="sidebar-indicator"
+                                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                                    />
+                                )}
+                            </NavLink>
+                        );
+                    })}
                 </nav>
 
-                <div className="sidebar-footer">
-                    <span className="sidebar-footer-label">Workspace</span>
-                    <strong>Quiet, focused, match-first</strong>
+                {/* Collapse toggle */}
+                <div className="px-3 py-4 border-t border-white/[0.04]">
+                    <motion.button
+                        className="flex items-center justify-center w-full py-2 rounded-xl text-muted hover:text-white transition-colors cursor-pointer"
+                        style={{ background: 'rgba(255,255,255,0.03)' }}
+                        onClick={() => setCollapsed(!collapsed)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                    >
+                        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                    </motion.button>
                 </div>
-            </aside>
+            </motion.aside>
 
-            <main className="main-content">
-                <header className="header shell-header">
-                    <div className="shell-heading">
-                        <p className="shell-breadcrumb">Tactix</p>
-                        <h2 className="shell-title">{meta.title}</h2>
+            {/* Main content */}
+            <main className="flex-1 flex flex-col overflow-hidden">
+                {/* Header */}
+                <header className="flex items-center justify-between px-8 h-16 border-b border-white/[0.04] bg-[#0A0A0F]/80 backdrop-blur-xl">
+                    <div>
+                        <p className="text-[10px] text-muted uppercase tracking-widest mb-0.5">Tactix</p>
+                        <h2 className="text-lg font-semibold text-white">{meta.title}</h2>
                     </div>
-                    <div className="shell-meta">
-                        <div className="shell-status">
-                            <span className="shell-status-dot" />
-                            <span>{meta.context}</span>
-                        </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-primary-400 animate-glow-pulse" />
+                        <span className="text-xs text-muted">{meta.context}</span>
                     </div>
                 </header>
 
-                <div className="page-content">
+                {/* Page content */}
+                <div className="flex-1 overflow-y-auto px-8 py-6">
                     <Outlet />
                 </div>
             </main>

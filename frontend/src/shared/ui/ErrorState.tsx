@@ -1,3 +1,6 @@
+import { motion } from 'framer-motion';
+import { AlertCircle } from 'lucide-react';
+
 interface ErrorStateProps {
     title?: string;
     description?: string;
@@ -12,21 +15,34 @@ export function ErrorState({
     onRetry,
 }: ErrorStateProps) {
     return (
-        <div className="empty-state" role="alert">
-            <div className="empty-icon">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 8v5" />
-                    <circle cx="12" cy="16" r="0.8" fill="currentColor" />
-                </svg>
+        <motion.div
+            className="flex flex-col items-center justify-center gap-5 py-12"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            role="alert"
+        >
+            <motion.div
+                className="text-red-400/80"
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+            >
+                <AlertCircle size={48} strokeWidth={1.5} />
+            </motion.div>
+            <div className="text-center">
+                <h3 className="text-base font-semibold text-white mb-1">{title}</h3>
+                <p className="text-sm text-muted max-w-md">{description}</p>
             </div>
-            <h3>{title}</h3>
-            <p>{description}</p>
-            {onRetry ? (
-                <button className="btn btn-primary" onClick={onRetry} type="button">
+            {onRetry && (
+                <motion.button
+                    className="btn-ghost"
+                    onClick={onRetry}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                >
                     {actionLabel}
-                </button>
-            ) : null}
-        </div>
+                </motion.button>
+            )}
+        </motion.div>
     );
 }

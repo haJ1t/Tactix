@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
+import { Network, Target, TrendingUp, BarChart3 } from 'lucide-react';
 import { buildOverviewInsights, getTeamStats, getTopPlayers, getTopPatterns } from '@/entities/analysis';
 import { useMatchWorkspaceContext } from '@/features/matches/pages/MatchWorkspacePage';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { formatPercent } from '@/shared/lib/format';
+import { FadeInUp, GlassCard, AnimatedCounter, AnimatedBar, StaggerContainer, StaggerItem, ShimmerButton } from '@/shared/ui/motion';
 
 export default function MatchOverviewTab() {
     const { match, currentAnalysis, currentTeamName, homeAnalysis, awayAnalysis, runAnalysis, isRunningAnalysis } = useMatchWorkspaceContext();
@@ -41,9 +43,9 @@ export default function MatchOverviewTab() {
                 title="Analysis not available yet"
                 description="Run the match analysis to unlock the overview, network, players, tactics, and report tabs."
                 action={
-                    <button className="btn btn-primary" onClick={() => void runAnalysis()} disabled={isRunningAnalysis}>
+                    <ShimmerButton onClick={() => void runAnalysis()} disabled={isRunningAnalysis}>
                         {isRunningAnalysis ? 'Running analysis...' : 'Run Analysis'}
-                    </button>
+                    </ShimmerButton>
                 }
             />
         );
@@ -54,144 +56,173 @@ export default function MatchOverviewTab() {
     const selectedTeamPassShare = currentTeamName === match.home_team?.team_name ? overview.passShareHome : overview.passShareAway;
 
     return (
-        <div className="workspace-stack">
-            <div className="overview-topline">
-                <div className="overview-topline-stat">
-                    <span className="editorial-stat-label">Selected lens</span>
-                    <strong>{currentTeamName}</strong>
-                </div>
-                <div className="overview-topline-stat">
-                    <span className="editorial-stat-label">Total passes</span>
-                    <strong>{selectedStats.totalPasses}</strong>
-                </div>
-                <div className="overview-topline-stat">
-                    <span className="editorial-stat-label">Pass share</span>
-                    <strong>{formatPercent(selectedTeamPassShare)}</strong>
-                </div>
-                <div className="overview-topline-stat">
-                    <span className="editorial-stat-label">xG total</span>
-                    <strong>{selectedStats.xgTotal.toFixed(2)}</strong>
-                </div>
+        <div className="space-y-6">
+            {/* Top Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                    { label: 'Selected lens', value: currentTeamName, icon: Target },
+                    { label: 'Total passes', value: selectedStats.totalPasses, icon: Network, isNumber: true },
+                    { label: 'Pass share', value: formatPercent(selectedTeamPassShare), icon: BarChart3 },
+                    { label: 'xG total', value: selectedStats.xgTotal.toFixed(2), icon: TrendingUp },
+                ].map((stat, i) => (
+                    <FadeInUp key={stat.label} delay={i * 0.05}>
+                        <GlassCard className="p-4">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <span className="text-[10px] uppercase tracking-wider text-[#94A3B8] font-medium">{stat.label}</span>
+                                    <strong className="block text-lg text-white mt-1">
+                                        {stat.isNumber ? <AnimatedCounter value={stat.value as number} /> : stat.value}
+                                    </strong>
+                                </div>
+                                <stat.icon className="w-4 h-4 text-primary-400 opacity-60" />
+                            </div>
+                        </GlassCard>
+                    </FadeInUp>
+                ))}
             </div>
 
-            <div className="grid grid-2 overview-story-grid">
-                <div className="card insight-panel insight-panel-primary theater-panel theater-panel-primary overview-story-panel">
-                    <div className="card-header">
-                        <div>
-                            <h3 className="card-title">Match Story</h3>
-                            <p className="card-subtitle">The clearest signals from the shared match analysis.</p>
-                        </div>
-                        <span className="tag">{overview.totalPasses} total passes</span>
-                    </div>
-                    <div className="card-body workspace-stack">
-                        <div className="pass-share">
-                            <div className="pass-share-labels">
-                                <span>{match.home_team?.team_name} {formatPercent(overview.passShareHome)}</span>
-                                <span>{match.away_team?.team_name} {formatPercent(overview.passShareAway)}</span>
+            {/* Match Story + Team Profile */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Match Story */}
+                <FadeInUp delay={0.1}>
+                    <GlassCard className="p-6 h-full" hover={false}>
+                        <div className="flex items-start justify-between mb-5">
+                            <div>
+                                <h3 className="text-base font-semibold text-white">Match Story</h3>
+                                <p className="text-xs text-[#94A3B8] mt-0.5">The clearest signals from the shared match analysis.</p>
                             </div>
-                            <div className="pass-share-bar">
-                                <div className="pass-share-home" style={{ width: `${overview.passShareHome * 100}%` }} />
-                                <div className="pass-share-away" style={{ width: `${overview.passShareAway * 100}%` }} />
-                            </div>
+                            <span className="tag-glow"><AnimatedCounter value={overview.totalPasses} /> total passes</span>
                         </div>
 
-                        <div className="editorial-stat-row editorial-stat-row-soft">
-                            <div className="editorial-stat">
-                                <span className="editorial-stat-label">Tracked players</span>
-                                <strong>{selectedStats.players}</strong>
+                        <div className="space-y-5">
+                            {/* Pass share bar */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-white font-medium">{match.home_team?.team_name} <span className="text-primary-400">{formatPercent(overview.passShareHome)}</span></span>
+                                    <span className="text-white font-medium">{match.away_team?.team_name} <span className="text-primary-400">{formatPercent(overview.passShareAway)}</span></span>
+                                </div>
+                                <div className="h-2 rounded-full bg-white/[0.04] overflow-hidden flex">
+                                    <AnimatedBar value={overview.passShareHome} max={1} color="rgb(99,102,241)" className="flex-1" />
+                                </div>
                             </div>
-                            <div className="editorial-stat">
-                                <span className="editorial-stat-label">Patterns found</span>
-                                <strong>{selectedStats.patterns}</strong>
-                            </div>
-                            <div className="editorial-stat">
-                                <span className="editorial-stat-label">Shot volume</span>
-                                <strong>{selectedStats.shots}</strong>
-                            </div>
-                            <div className="editorial-stat">
-                                <span className="editorial-stat-label">Reciprocity</span>
-                                <strong>{formatPercent(selectedStats.reciprocity)}</strong>
-                            </div>
-                        </div>
 
-                        {overview.insights.length > 0 ? (
-                            <div className="insights-list curated-insights">
-                                {overview.insights.map((insight) => (
-                                    <div className="insight-item" key={insight}>
-                                        <span className="insight-bullet">•</span>
-                                        <span>{insight}</span>
+                            {/* Stat row */}
+                            <div className="grid grid-cols-4 gap-3">
+                                {[
+                                    { label: 'Tracked players', value: selectedStats.players },
+                                    { label: 'Patterns found', value: selectedStats.patterns },
+                                    { label: 'Shot volume', value: selectedStats.shots },
+                                    { label: 'Reciprocity', value: formatPercent(selectedStats.reciprocity) },
+                                ].map((s) => (
+                                    <div key={s.label} className="text-center">
+                                        <span className="text-[10px] uppercase tracking-wider text-[#94A3B8] block">{s.label}</span>
+                                        <strong className="text-sm text-white block mt-0.5">
+                                            {typeof s.value === 'number' ? <AnimatedCounter value={s.value} /> : s.value}
+                                        </strong>
                                     </div>
                                 ))}
                             </div>
-                        ) : (
-                            <p className="page-subtitle">No strong match differentials were detected from the current network and shot profile.</p>
-                        )}
-                    </div>
-                </div>
 
-                <div className="card insight-panel theater-panel overview-profile-panel">
-                    <div className="card-header">
-                        <div>
-                            <h3 className="card-title">Selected Team Profile</h3>
-                            <p className="card-subtitle">Compact orientation before moving into deeper tabs.</p>
+                            {/* Insights */}
+                            {overview.insights.length > 0 ? (
+                                <StaggerContainer className="space-y-2" staggerDelay={0.06}>
+                                    {overview.insights.map((insight) => (
+                                        <StaggerItem key={insight}>
+                                            <div className="flex items-start gap-2 text-sm">
+                                                <span className="text-primary-400 mt-0.5 shrink-0">&#8226;</span>
+                                                <span className="text-[#94A3B8] leading-relaxed">{insight}</span>
+                                            </div>
+                                        </StaggerItem>
+                                    ))}
+                                </StaggerContainer>
+                            ) : (
+                                <p className="text-sm text-[#94A3B8]">No strong match differentials were detected from the current network and shot profile.</p>
+                            )}
                         </div>
-                    </div>
-                    <div className="card-body workspace-stack">
-                        <div className="detail-list overview-profile-list">
-                            <div className="stat-item">
-                                <span className="stat-label">Network density</span>
-                                <span className="stat-value">{formatPercent(selectedStats.density)}</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-label">Average clustering</span>
-                                <span className="stat-value">{formatPercent(selectedStats.clustering)}</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-label">Average path length</span>
-                                <span className="stat-value">{selectedStats.avgPathLength.toFixed(2)}</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-label">xG per shot</span>
-                                <span className="stat-value">{selectedStats.xgPerShot.toFixed(2)}</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-label">High xG shots</span>
-                                <span className="stat-value">{selectedStats.highXgShots}</span>
-                            </div>
+                    </GlassCard>
+                </FadeInUp>
+
+                {/* Team Profile */}
+                <FadeInUp delay={0.2}>
+                    <GlassCard className="p-6 h-full" hover={false}>
+                        <div className="mb-5">
+                            <h3 className="text-base font-semibold text-white">Selected Team Profile</h3>
+                            <p className="text-xs text-[#94A3B8] mt-0.5">Compact orientation before moving into deeper tabs.</p>
                         </div>
-                    </div>
-                </div>
+
+                        <div className="space-y-3">
+                            {[
+                                { label: 'Network density', value: formatPercent(selectedStats.density) },
+                                { label: 'Average clustering', value: formatPercent(selectedStats.clustering) },
+                                { label: 'Average path length', value: selectedStats.avgPathLength.toFixed(2) },
+                                { label: 'xG per shot', value: selectedStats.xgPerShot.toFixed(2) },
+                                { label: 'High xG shots', value: String(selectedStats.highXgShots) },
+                            ].map((item, i) => (
+                                <FadeInUp key={item.label} delay={0.25 + i * 0.04}>
+                                    <div className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                                        <span className="text-sm text-[#94A3B8]">{item.label}</span>
+                                        <span className="text-sm font-medium text-white">{item.value}</span>
+                                    </div>
+                                </FadeInUp>
+                            ))}
+                        </div>
+                    </GlassCard>
+                </FadeInUp>
             </div>
 
-            <div className="card theater-panel overview-connectors-panel">
-                <div className="card-header">
-                    <div>
-                        <h3 className="card-title">Key Connectors</h3>
-                        <p className="card-subtitle">The players carrying structure and progression for {currentTeamName}.</p>
+            {/* Key Connectors */}
+            <FadeInUp delay={0.15}>
+                <GlassCard className="p-6" hover={false}>
+                    <div className="mb-5">
+                        <h3 className="text-base font-semibold text-white">Key Connectors</h3>
+                        <p className="text-xs text-[#94A3B8] mt-0.5">The players carrying structure and progression for {currentTeamName}.</p>
                     </div>
-                </div>
-                <div className="card-body">
-                    <div className="player-rank-list player-rank-list-editorial">
+
+                    <StaggerContainer className="space-y-3" staggerDelay={0.06}>
                         {topPlayers.map((player, index) => (
-                            <div key={player.player_id} className={`player-rank-row editorial-player-row ${index < 3 ? 'editorial-player-row-top' : ''}`}>
-                                <span className="player-rank-num">{index + 1}</span>
-                                <div className="player-rank-core">
-                                    <div className="player-mini-avatar">{(player.player_name || player.name || '?')[0]}</div>
-                                    <div>
-                                        <div className="player-name">{player.player_name || player.name}</div>
-                                        <div className="player-meta">Impact {player.impactScore.toFixed(3)}</div>
+                            <StaggerItem key={player.player_id}>
+                                <div className={`flex items-center gap-4 p-3 rounded-xl border transition-colors ${
+                                    index < 3
+                                        ? 'bg-primary-500/[0.04] border-primary-500/10'
+                                        : 'bg-white/[0.01] border-white/[0.04]'
+                                }`}>
+                                    <span className={`text-xs font-bold w-6 text-center ${index < 3 ? 'text-primary-400' : 'text-[#94A3B8]'}`}>
+                                        {index + 1}
+                                    </span>
+
+                                    <div className="w-9 h-9 rounded-full bg-primary-500/20 border border-primary-500/30 flex items-center justify-center text-sm font-bold text-primary-400 shrink-0">
+                                        {(player.player_name || player.name || '?')[0]}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium text-white truncate">{player.player_name || player.name}</div>
+                                        <div className="text-[10px] text-[#94A3B8]">Impact {player.impactScore.toFixed(3)}</div>
+                                    </div>
+
+                                    <div className="hidden sm:flex items-center gap-4 text-xs text-[#94A3B8]">
+                                        <div className="text-center">
+                                            <span className="block text-[10px] uppercase tracking-wider">Degree</span>
+                                            <span className="text-white font-medium">{player.degree_centrality.toFixed(3)}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="block text-[10px] uppercase tracking-wider">Betweenness</span>
+                                            <span className="text-white font-medium">{player.betweenness_centrality.toFixed(3)}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="block text-[10px] uppercase tracking-wider">PageRank</span>
+                                            <span className="text-white font-medium">{player.pagerank.toFixed(3)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="w-24 hidden md:block">
+                                        <AnimatedBar value={player.impactScore} max={topPlayers[0]?.impactScore || 1} color="rgb(99,102,241)" />
                                     </div>
                                 </div>
-                                <div className="player-rank-stats">
-                                    <span>Degree {player.degree_centrality.toFixed(3)}</span>
-                                    <span>Betweenness {player.betweenness_centrality.toFixed(3)}</span>
-                                    <span>PageRank {player.pagerank.toFixed(3)}</span>
-                                </div>
-                            </div>
+                            </StaggerItem>
                         ))}
-                    </div>
-                </div>
-            </div>
+                    </StaggerContainer>
+                </GlassCard>
+            </FadeInUp>
         </div>
     );
 }
