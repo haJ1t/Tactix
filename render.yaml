@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tactix-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && python app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: FRONTEND_URL
+        sync: false

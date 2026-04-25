@@ -28,14 +28,19 @@ def create_app(config_name: str = 'production'):
     app.config.from_object(app_config.get(config_name, app_config['default']))
 
     # Enable CORS — restricted to known frontend origins only
+    frontend_url = os.environ.get('FRONTEND_URL')
+    origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    if frontend_url:
+        origins.append(frontend_url)
+
     CORS(
         app,
         resources={
             r"/api/*": {
-                "origins": [
-                    "http://localhost:3000",
-                    "http://127.0.0.1:3000",
-                ]
+                "origins": origins
             }
         },
     )
@@ -100,4 +105,5 @@ def create_app(config_name: str = 'production'):
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5001)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(debug=False, host='0.0.0.0', port=port)
