@@ -28,13 +28,15 @@ def create_app(config_name: str = 'production'):
     app.config.from_object(app_config.get(config_name, app_config['default']))
 
     # Enable CORS — restricted to known frontend origins only
-    frontend_url = os.environ.get('FRONTEND_URL')
+    frontend_url = os.environ.get('FRONTEND_URL', '').strip()
     origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
-    if frontend_url:
+    if frontend_url and frontend_url != '*':
         origins.append(frontend_url)
+    elif not frontend_url:
+        origins.append('*')
 
     CORS(
         app,
