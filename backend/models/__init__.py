@@ -1,7 +1,8 @@
 """
 Database models package
 """
-from sqlalchemy import create_engine
+import re
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
@@ -10,8 +11,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 DATABASE_PATH = os.path.join(BASE_DIR, 'database', 'pass_network.db')
 DATABASE_URL = f'sqlite:///{DATABASE_PATH}'
 
-# Create engine and session
-engine = create_engine(DATABASE_URL, echo=False)
+# Create engine and session with connection pool limits
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Base class for models
@@ -40,6 +47,19 @@ SCHEMA_UPGRADES = {
     },
 }
 
+INDEX_UPGRADES = {
+    'ix_events_match_team_type': 'CREATE INDEX IF NOT EXISTS ix_events_match_team_type ON events (match_id, team_id, event_type)',
+    'ix_events_match_team_period': 'CREATE INDEX IF NOT EXISTS ix_events_match_team_period ON events (match_id, team_id, period)',
+    'ix_passes_event_id': 'CREATE INDEX IF NOT EXISTS ix_passes_event_id ON passes (event_id)',
+    'ix_passes_passer_id': 'CREATE INDEX IF NOT EXISTS ix_passes_passer_id ON passes (passer_id)',
+    'ix_passes_recipient_id': 'CREATE INDEX IF NOT EXISTS ix_passes_recipient_id ON passes (recipient_id)',
+    'ix_network_metrics_match_team': 'CREATE INDEX IF NOT EXISTS ix_network_metrics_match_team ON network_metrics (match_id, team_id)',
+    'ix_network_metrics_player_id': 'CREATE INDEX IF NOT EXISTS ix_network_metrics_player_id ON network_metrics (player_id)',
+}
+
+SAFE_IDENTIFIER_RE = re.compile(r'^[a-zA-Z0-9_]+$')
+
+
 def get_db():
     """Get database session"""
     db = SessionLocal()
@@ -49,7 +69,15 @@ def get_db():
         db.close()
 
 
+def _is_safe_identifier(value: str) -> bool:
+    """Validate that a string is a safe SQL identifier."""
+    return bool(SAFE_IDENTIFIER_RE.match(value))
+
+
 def _table_columns(conn, table_name: str) -> set:
+    # Validate table_name before using in SQL
+    if not _is_safe_identifier(table_name):
+        return set()
     rows = conn.exec_driver_sql(f"PRAGMA table_info({table_name})").fetchall()
     return {row[1] for row in rows}
 
@@ -68,14 +96,29 @@ def ensure_schema_upgrades():
             if table_name not in existing_tables:
                 continue
 
+            # Validate table_name before use
+            if not _is_safe_identifier(table_name):
+                continue
+
             current_columns = _table_columns(conn, table_name)
             for column_name, column_type in columns.items():
                 if column_name in current_columns:
+                    continue
+                # Validate identifiers before using in f-string SQL
+                if not _is_safe_identifier(column_name):
+                    continue
+                if not _is_safe_identifier(column_type):
                     continue
                 conn.exec_driver_sql(
                     f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
                 )
                 current_columns.add(column_name)
+
+        # INDEX_UPGRADES contains hardcoded, fully-qualified SQL statements
+        # with no user input — safe to execute directly.
+        for statement in INDEX_UPGRADES.values():
+            conn.exec_driver_sql(statement)
+
 
 def init_db():
     """Initialize database tables"""

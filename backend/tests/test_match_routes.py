@@ -39,6 +39,9 @@ class FakeQuery:
     def all(self):
         return list(self.session.data.get(self.model, []))
 
+    def options(self, *_args, **_kwargs):
+        return self
+
     def delete(self):
         return 0
 

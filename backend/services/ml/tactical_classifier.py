@@ -630,30 +630,36 @@ class TacticalPatternClassifier:
         }, path)
 
     def load_model(self, path: str):
-        """Load trained models."""
-        if os.path.exists(path):
-            try:
-                data = joblib.load(path)
-                self.classifier = data.get('classifier', self.classifier)
-                legacy_scaler = data.get('scaler')
-                self.classifier_scaler = data.get('classifier_scaler', legacy_scaler if legacy_scaler is not None else self.classifier_scaler)
-                self.kmeans_scaler = data.get('kmeans_scaler', legacy_scaler if legacy_scaler is not None else self.kmeans_scaler)
-                self.scaler = self.classifier_scaler
-                self.kmeans = data.get('kmeans', self.kmeans)
-                self.is_trained = data.get('is_trained', False)
-                self.kmeans_trained = data.get('kmeans_trained', False)
-                self.feature_columns = data.get('feature_columns', [])
-                self.cluster_centers_ = data.get('cluster_centers', None)
-                self.pattern_classes = [str(label) for label in data.get('pattern_classes', [])]
-                if not self.pattern_classes and hasattr(self.classifier, 'classes_'):
-                    raw_classes = list(getattr(self.classifier, 'classes_', []))
-                    if raw_classes and all(not isinstance(label, str) for label in raw_classes):
-                        inferred_classes = self._infer_pattern_classes_from_report(path)
-                        if len(inferred_classes) == len(raw_classes):
-                            self.pattern_classes = inferred_classes
-                    if not self.pattern_classes:
-                        self.pattern_classes = [self._normalize_pattern_type(label) for label in raw_classes]
-            except Exception as e:
-                self.is_trained = False
-                self.kmeans_trained = False
-                print(f"Warning: Failed to load tactical classifier from {path}: {e}")
+        """Load trained models with integrity verification."""
+        from utils.security import secure_joblib_load
+
+        data = secure_joblib_load(path, joblib.load)
+        if data is None:
+            self.is_trained = False
+            self.kmeans_trained = False
+            return
+
+        try:
+            self.classifier = data.get('classifier', self.classifier)
+            legacy_scaler = data.get('scaler')
+            self.classifier_scaler = data.get('classifier_scaler', legacy_scaler if legacy_scaler is not None else self.classifier_scaler)
+            self.kmeans_scaler = data.get('kmeans_scaler', legacy_scaler if legacy_scaler is not None else self.kmeans_scaler)
+            self.scaler = self.classifier_scaler
+            self.kmeans = data.get('kmeans', self.kmeans)
+            self.is_trained = data.get('is_trained', False)
+            self.kmeans_trained = data.get('kmeans_trained', False)
+            self.feature_columns = data.get('feature_columns', [])
+            self.cluster_centers_ = data.get('cluster_centers', None)
+            self.pattern_classes = [str(label) for label in data.get('pattern_classes', [])]
+            if not self.pattern_classes and hasattr(self.classifier, 'classes_'):
+                raw_classes = list(getattr(self.classifier, 'classes_', []))
+                if raw_classes and all(not isinstance(label, str) for label in raw_classes):
+                    inferred_classes = self._infer_pattern_classes_from_report(path)
+                    if len(inferred_classes) == len(raw_classes):
+                        self.pattern_classes = inferred_classes
+                if not self.pattern_classes:
+                    self.pattern_classes = [self._normalize_pattern_type(label) for label in raw_classes]
+        except Exception as e:
+            self.is_trained = False
+            self.kmeans_trained = False
+            print(f"Warning: Failed to load tactical classifier from {path}: {e}")

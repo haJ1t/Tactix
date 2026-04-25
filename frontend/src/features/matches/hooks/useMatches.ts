@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Match, MatchFilters } from '@/entities/match';
 import { queryKeys } from '@/shared/api/queryKeys';
@@ -27,11 +28,18 @@ const sortMatches = (matches: Match[], sortBy: MatchFilters['sortBy']) => {
 };
 
 export const useMatches = (filters: MatchFilters = {}) =>
-    useQuery({
+    {
+        const query = useQuery({
         queryKey: queryKeys.matches(filters),
         queryFn: () => matchService.getMatches(),
-        select: (data): MatchCatalogResult => {
-            const allMatches = data.matches || [];
+    });
+
+        const data = useMemo((): MatchCatalogResult | undefined => {
+            if (!query.data) {
+                return undefined;
+            }
+
+            const allMatches = query.data.matches || [];
             const search = filters.search?.trim().toLowerCase() || '';
 
             const filtered = allMatches.filter((match) => {
@@ -58,8 +66,13 @@ export const useMatches = (filters: MatchFilters = {}) =>
                 competitions: Array.from(new Set(allMatches.map((match) => match.competition).filter(Boolean))).sort(),
                 seasons: Array.from(new Set(allMatches.map((match) => match.season).filter(Boolean))).sort(),
             };
-        },
-    });
+        }, [filters.competition, filters.search, filters.season, filters.sortBy, query.data]);
+
+        return {
+            ...query,
+            data,
+        };
+    };
 
 export const useMatch = (matchId: number | null) =>
     useQuery({

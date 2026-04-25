@@ -4,7 +4,7 @@ Match-related API routes
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models import SessionLocal
 from models.match import Match
 from models.team import Team
@@ -19,6 +19,7 @@ from services.pattern_detector import PatternDetector
 from services.counter_tactic_generator import CounterTacticGenerator
 from services.ml.analysis_pipeline import MLAnalysisPipeline
 from services.ml.shot_metrics import calculate_shot_summary
+from utils.security import require_api_key
 import pandas as pd
 
 match_bp = Blueprint('matches', __name__, url_prefix='/api/matches')
@@ -79,7 +80,11 @@ def build_ml_analysis_payload(
         )
         shot_summary = calculate_shot_summary(shots_df)
 
-        passes = db.query(PassEvent).join(Event).filter(
+        passes = db.query(PassEvent).join(Event).options(
+            joinedload(PassEvent.event),
+            joinedload(PassEvent.passer),
+            joinedload(PassEvent.recipient),
+        ).filter(
             Event.match_id == match.match_id,
             Event.team_id == tid
         ).all()
@@ -205,11 +210,15 @@ def build_ml_analysis_payload(
 
 
 @match_bp.route('', methods=['GET'])
+@require_api_key
 def list_matches():
     """List all available matches."""
     db = get_db()
     try:
-        matches = db.query(Match).all()
+        matches = db.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+        ).all()
         return jsonify({
             'matches': [m.to_dict() for m in matches],
             'count': len(matches)
@@ -219,11 +228,15 @@ def list_matches():
 
 
 @match_bp.route('/<int:match_id>', methods=['GET'])
+@require_api_key
 def get_match(match_id: int):
     """Get match details."""
     db = get_db()
     try:
-        match = db.query(Match).filter(Match.match_id == match_id).first()
+        match = db.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+        ).filter(Match.match_id == match_id).first()
         if not match:
             return jsonify({'error': 'Match not found'}), 404
         
@@ -233,6 +246,7 @@ def get_match(match_id: int):
 
 
 @match_bp.route('/<int:match_id>/network', methods=['GET'])
+@require_api_key
 def get_match_network(match_id: int):
     """
     Get pass network for a match.
@@ -250,7 +264,11 @@ def get_match_network(match_id: int):
         min_passes = request.args.get('min_passes', default=1, type=int)
         
         # Build query for passes
-        query = db.query(PassEvent).join(Event).filter(
+        query = db.query(PassEvent).join(Event).options(
+            joinedload(PassEvent.event),
+            joinedload(PassEvent.passer),
+            joinedload(PassEvent.recipient),
+        ).filter(
             Event.match_id == match_id
         )
         
@@ -318,6 +336,7 @@ def get_match_network(match_id: int):
 
 
 @match_bp.route('/<int:match_id>/analyze', methods=['POST'])
+@require_api_key
 def analyze_match(match_id: int):
     """
     Trigger full analysis for a match.
@@ -366,7 +385,11 @@ def analyze_match(match_id: int):
             shot_summary = calculate_shot_summary(shots_df)
 
             # Get passes for this team
-            passes = db.query(PassEvent).join(Event).filter(
+            passes = db.query(PassEvent).join(Event).options(
+                joinedload(PassEvent.event),
+                joinedload(PassEvent.passer),
+                joinedload(PassEvent.recipient),
+            ).filter(
                 Event.match_id == match_id,
                 Event.team_id == tid
             ).all()
@@ -461,6 +484,7 @@ def analyze_match(match_id: int):
 
 
 @match_bp.route('/<int:match_id>/analyze-ml', methods=['POST'])
+@require_api_key
 def analyze_match_ml(match_id: int):
     """
     Trigger ML-enhanced analysis for a match.

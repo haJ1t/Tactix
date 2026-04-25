@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { getMatchResult, getOpponentName } from '@/entities/analysis';
 import { useTeamDetailsContext } from '@/features/teams/pages/TeamDetailsPage';
 import { formatMatchDate } from '@/shared/lib/format';
-import { FadeInUp, GlassCard, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
+import { FadeInUp, GlassCard } from '@/shared/ui/motion';
 import { motion } from 'framer-motion';
 import { Calendar, Swords, Trophy, ExternalLink } from 'lucide-react';
 
@@ -34,33 +34,33 @@ export default function TeamMatchesTab() {
                                 <th className="text-right py-3 px-4 text-xs font-medium text-[#94A3B8] uppercase tracking-wider">Workspace</th>
                             </tr>
                         </thead>
-                        <StaggerContainer className="contents" staggerDelay={0.04}>
-                            <tbody>
-                                {matches.map((match) => (
-                                    <StaggerItem key={match.match_id} className="contents">
-                                        <motion.tr
-                                            className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
-                                            whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+                        <tbody>
+                            {matches.map((match) => (
+                                <motion.tr
+                                    key={match.match_id}
+                                    className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+                                >
+                                    <td className="py-3 px-4 text-sm text-[#94A3B8]">{formatMatchDate(match.match_date)}</td>
+                                    <td className="py-3 px-4 text-sm text-white font-medium">{getOpponentName(match, team.team_id)}</td>
+                                    <td className="py-3 px-4 text-sm text-[#94A3B8]">{match.competition}</td>
+                                    <td className="py-3 px-4">
+                                        <span className="tag-glow">{getMatchResult(match, team.team_id)}</span>
+                                    </td>
+                                    <td className="py-3 px-4 text-right">
+                                        <Link
+                                            className="btn-ghost inline-flex items-center gap-1.5 text-sm"
+                                            to={`/matches/${match.match_id}/overview`}
                                         >
-                                            <td className="py-3 px-4 text-sm text-[#94A3B8]">{formatMatchDate(match.match_date)}</td>
-                                            <td className="py-3 px-4 text-sm text-white font-medium">{getOpponentName(match, team.team_id)}</td>
-                                            <td className="py-3 px-4 text-sm text-[#94A3B8]">{match.competition}</td>
-                                            <td className="py-3 px-4">
-                                                <span className="tag-glow">{getMatchResult(match, team.team_id)}</span>
-                                            </td>
-                                            <td className="py-3 px-4 text-right">
-                                                <Link
-                                                    className="btn-ghost inline-flex items-center gap-1.5 text-sm"
-                                                    to={`/matches/${match.match_id}/overview`}
-                                                >
-                                                    Open <ExternalLink className="h-3.5 w-3.5" />
-                                                </Link>
-                                            </td>
-                                        </motion.tr>
-                                    </StaggerItem>
-                                ))}
-                            </tbody>
-                        </StaggerContainer>
+                                            Open <ExternalLink className="h-3.5 w-3.5" />
+                                        </Link>
+                                    </td>
+                                </motion.tr>
+                            ))}
+                        </tbody>
                     </table>
                 </div>
             </GlassCard>

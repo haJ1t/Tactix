@@ -12,7 +12,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
         <div className="app-layout">
             <Sidebar />
             <main className="main-content">
-                <Header title={title} userName="Halil" />
+                <Header title={title} userName="Analyst" />
                 <div className="page-content">
                     {children}
                 </div>

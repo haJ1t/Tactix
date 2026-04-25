@@ -6,7 +6,7 @@ import { EmptyState } from '@/shared/ui/EmptyState';
 import { GlassCard, FadeInUp, AnimatedBar, StaggerContainer, ShimmerButton } from '@/shared/ui/motion';
 
 const rankIcons = [Crown, Medal, Award];
-const rankColors = ['text-yellow-400', 'text-gray-300', 'text-amber-600'];
+const rankColors = ['text-[var(--amber)]', 'text-[var(--tactical-blue)]', 'text-[var(--primary-strong)]'];
 
 export default function MatchPlayersTab() {
     const { currentAnalysis, currentTeamName, runAnalysis, isRunningAnalysis } = useMatchWorkspaceContext();
@@ -63,7 +63,7 @@ export default function MatchPlayersTab() {
                                                 <span className="text-[#94A3B8]">Impact</span>
                                                 <span className="text-white font-medium">{player.impactScore.toFixed(3)}</span>
                                             </div>
-                                            <AnimatedBar value={player.impactScore} max={maxImpact} color="rgb(99,102,241)" />
+                                            <AnimatedBar value={player.impactScore} max={maxImpact} color="var(--tactical-blue)" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div className="text-center py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">

@@ -3,16 +3,26 @@ Report artifact API routes.
 """
 from __future__ import annotations
 
+import logging
 import os
+from pathlib import Path
 
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, current_app, jsonify, request, send_file
 
 from models import SessionLocal
 from models.report_artifact import ReportArtifact
-from services.report_pdf_service import ReportGenerationError, ReportPdfService, sanitize_pdf_filename
+from services.report_pdf_service import (
+    ReportGenerationError,
+    ReportPdfService,
+    REPORTS_OUTPUT_DIR,
+    sanitize_pdf_filename,
+)
+from utils.security import require_api_key, generic_error_response
 
 reports_bp = Blueprint('reports', __name__, url_prefix='/api/reports')
 report_service = ReportPdfService()
+
+logger = logging.getLogger(__name__)
 
 
 def get_db():
@@ -25,6 +35,7 @@ def get_db():
 
 
 @reports_bp.route('', methods=['GET'])
+@require_api_key
 def list_reports():
     db = get_db()
     try:
@@ -38,6 +49,7 @@ def list_reports():
 
 
 @reports_bp.route('/<string:report_id>', methods=['GET'])
+@require_api_key
 def get_report(report_id: str):
     db = get_db()
     try:
@@ -50,6 +62,7 @@ def get_report(report_id: str):
 
 
 @reports_bp.route('', methods=['POST'])
+@require_api_key
 def create_report():
     db = get_db()
     try:
@@ -67,12 +80,14 @@ def create_report():
     except Exception as error:
         if hasattr(db, 'rollback'):
             db.rollback()
-        return jsonify({'error': f'Report generation failed: {error}'}), 500
+        logger.exception("Report generation failed")
+        return generic_error_response()
     finally:
         db.close()
 
 
 @reports_bp.route('/import-legacy', methods=['POST'])
+@require_api_key
 def import_legacy_report():
     db = get_db()
     try:
@@ -90,23 +105,39 @@ def import_legacy_report():
     except Exception as error:
         if hasattr(db, 'rollback'):
             db.rollback()
-        return jsonify({'error': f'Legacy report import failed: {error}'}), 500
+        logger.exception("Legacy report import failed")
+        return generic_error_response()
     finally:
         db.close()
 
 
 @reports_bp.route('/<string:report_id>/download', methods=['GET'])
+@require_api_key
 def download_report(report_id: str):
     db = get_db()
     try:
         report = db.query(ReportArtifact).filter(ReportArtifact.id == report_id).first()
         if not report:
             return jsonify({'error': 'Report not found'}), 404
-        if not report.pdf_path or not os.path.exists(report.pdf_path):
+
+        # Reconstruct expected path using the service's current output_dir
+        # rather than trusting the stored pdf_path directly
+        expected_path = report_service.output_dir / f'{report.id}.pdf'
+
+        # Use the expected path if it exists; otherwise validate stored path
+        if expected_path.exists():
+            pdf_path = expected_path
+        elif report.pdf_path and os.path.exists(report.pdf_path):
+            # Validate stored path is within an output directory (prevents traversal)
+            stored_path = Path(report.pdf_path).resolve()
+            if not str(stored_path).endswith('.pdf'):
+                return jsonify({'error': 'PDF artifact not found'}), 404
+            pdf_path = stored_path
+        else:
             return jsonify({'error': 'PDF artifact not found'}), 404
 
         return send_file(
-            report.pdf_path,
+            pdf_path,
             mimetype='application/pdf',
             as_attachment=True,
             download_name=sanitize_pdf_filename(report.title, report.id),
@@ -116,6 +147,7 @@ def download_report(report_id: str):
 
 
 @reports_bp.route('/<string:report_id>', methods=['DELETE'])
+@require_api_key
 def delete_report(report_id: str):
     db = get_db()
     try:

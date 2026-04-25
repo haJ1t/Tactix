@@ -1,9 +1,29 @@
 import { useTeamDetailsContext } from '@/features/teams/pages/TeamDetailsPage';
-import { FadeInUp, GlassCard, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
+import { EmptyState } from '@/shared/ui/EmptyState';
+import { FadeInUp, GlassCard, StaggerContainer, StaggerItem, ShimmerButton } from '@/shared/ui/motion';
 import { Shapes, Lightbulb } from 'lucide-react';
 
 export default function TeamPatternsTab() {
-    const { aggregateAnalysis, season } = useTeamDetailsContext();
+    const { aggregateAnalysis, season, analyzedMatches, analysisRequested, isAnalysisPending, requestAnalysis } =
+        useTeamDetailsContext();
+
+    if (analyzedMatches === 0) {
+        return (
+            <EmptyState
+                title={analysisRequested ? 'Analysis still warming up' : 'Patterns need manual analysis'}
+                description={
+                    analysisRequested
+                        ? 'No successful sample analyses are available yet for this season.'
+                        : 'Run sample analysis to generate aggregate pattern and tactic recommendations for this team season.'
+                }
+                action={
+                    <ShimmerButton onClick={requestAnalysis} disabled={isAnalysisPending}>
+                        {isAnalysisPending ? 'Running sample analysis...' : 'Run Sample Analysis'}
+                    </ShimmerButton>
+                }
+            />
+        );
+    }
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,6 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import type { PropsWithChildren } from 'react';
+import { lazy, Suspense, type PropsWithChildren } from 'react';
+
+const QueryDevtools = import.meta.env.DEV && import.meta.env.VITE_ENABLE_QUERY_DEVTOOLS === 'true'
+    ? lazy(() => import('@tanstack/react-query-devtools').then((module) => ({ default: module.ReactQueryDevtools })))
+    : null;
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -20,7 +23,11 @@ export function QueryProvider({ children }: PropsWithChildren) {
     return (
         <QueryClientProvider client={queryClient}>
             {children}
-            <ReactQueryDevtools initialIsOpen={false} />
+            {QueryDevtools ? (
+                <Suspense fallback={null}>
+                    <QueryDevtools initialIsOpen={false} />
+                </Suspense>
+            ) : null}
         </QueryClientProvider>
     );
 }

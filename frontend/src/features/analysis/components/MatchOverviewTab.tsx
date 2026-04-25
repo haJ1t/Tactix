@@ -102,7 +102,7 @@ export default function MatchOverviewTab() {
                                     <span className="text-white font-medium">{match.away_team?.team_name} <span className="text-primary-400">{formatPercent(overview.passShareAway)}</span></span>
                                 </div>
                                 <div className="h-2 rounded-full bg-white/[0.04] overflow-hidden flex">
-                                    <AnimatedBar value={overview.passShareHome} max={1} color="rgb(99,102,241)" className="flex-1" />
+                                    <AnimatedBar value={overview.passShareHome} max={1} color="var(--primary)" className="flex-1" />
                                 </div>
                             </div>
 
@@ -215,7 +215,7 @@ export default function MatchOverviewTab() {
                                     </div>
 
                                     <div className="w-24 hidden md:block">
-                                        <AnimatedBar value={player.impactScore} max={topPlayers[0]?.impactScore || 1} color="rgb(99,102,241)" />
+                                        <AnimatedBar value={player.impactScore} max={topPlayers[0]?.impactScore || 1} color="var(--tactical-blue)" />
                                     </div>
                                 </div>
                             </StaggerItem>

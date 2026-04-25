@@ -225,18 +225,23 @@ class PassDifficultyModel:
         joblib.dump(data, path)
 
     def load_model(self, path: str):
-        """Load trained model."""
-        if os.path.exists(path):
-            try:
-                data = joblib.load(path)
-                self.model = data.get('model', data)
-                self.scaler = data.get('scaler', None)
-                self.is_trained = data.get('is_trained', False)
-                self.numeric_cols = data.get('numeric_cols', self.numeric_cols)
-                self.cat_cols = data.get('cat_cols', self.cat_cols)
-                self.artifact_type = data.get('artifact_type', 'single_model')
-                self.bucket_models = data.get('bucket_models', {})
-                self.bucket_calibrators = data.get('bucket_calibrators', {})
-            except Exception as e:
-                self.is_trained = False
-                print(f"Warning: Failed to load pass difficulty model from {path}: {e}")
+        """Load trained model with integrity verification."""
+        from utils.security import secure_joblib_load
+
+        data = secure_joblib_load(path, joblib.load)
+        if data is None:
+            self.is_trained = False
+            return
+
+        try:
+            self.model = data.get('model', data)
+            self.scaler = data.get('scaler', None)
+            self.is_trained = data.get('is_trained', False)
+            self.numeric_cols = data.get('numeric_cols', self.numeric_cols)
+            self.cat_cols = data.get('cat_cols', self.cat_cols)
+            self.artifact_type = data.get('artifact_type', 'single_model')
+            self.bucket_models = data.get('bucket_models', {})
+            self.bucket_calibrators = data.get('bucket_calibrators', {})
+        except Exception as e:
+            self.is_trained = False
+            print(f"Warning: Failed to load pass difficulty model from {path}: {e}")

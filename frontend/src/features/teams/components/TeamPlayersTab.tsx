@@ -1,10 +1,30 @@
 import { useTeamDetailsContext } from '@/features/teams/pages/TeamDetailsPage';
-import { FadeInUp, GlassCard, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
+import { EmptyState } from '@/shared/ui/EmptyState';
+import { FadeInUp, GlassCard, ShimmerButton } from '@/shared/ui/motion';
 import { motion } from 'framer-motion';
 import { Users, Hash, User, GitBranch, Eye } from 'lucide-react';
 
 export default function TeamPlayersTab() {
-    const { aggregateAnalysis, season } = useTeamDetailsContext();
+    const { aggregateAnalysis, season, analyzedMatches, analysisRequested, isAnalysisPending, requestAnalysis } =
+        useTeamDetailsContext();
+
+    if (analyzedMatches === 0) {
+        return (
+            <EmptyState
+                title={analysisRequested ? 'Analysis still warming up' : 'Players need manual analysis'}
+                description={
+                    analysisRequested
+                        ? 'No successful sample analyses are available yet for this season.'
+                        : 'Run sample analysis to build aggregate player influence rankings for this team season.'
+                }
+                action={
+                    <ShimmerButton onClick={requestAnalysis} disabled={isAnalysisPending}>
+                        {isAnalysisPending ? 'Running sample analysis...' : 'Run Sample Analysis'}
+                    </ShimmerButton>
+                }
+            />
+        );
+    }
 
     return (
         <FadeInUp>
@@ -37,31 +57,31 @@ export default function TeamPlayersTab() {
                                 </th>
                             </tr>
                         </thead>
-                        <StaggerContainer className="contents" staggerDelay={0.04}>
-                            <tbody>
-                                {aggregateAnalysis.topPlayers.map((player, index) => (
-                                    <StaggerItem key={player.player_id} className="contents">
-                                        <motion.tr
-                                            className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
-                                            whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-                                        >
-                                            <td className="py-3 px-4">
-                                                <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                                                    index < 3 ? 'bg-primary-500/20 text-primary-400' : 'bg-white/[0.05] text-[#94A3B8]'
-                                                }`}>
-                                                    {index + 1}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-4 text-sm text-white font-medium">{player.player_name}</td>
-                                            <td className="py-3 px-4 text-sm text-[#94A3B8] font-mono">{player.avgBetweenness.toFixed(3)}</td>
-                                            <td className="py-3 px-4">
-                                                <span className="tag-glow">{player.appearances}</span>
-                                            </td>
-                                        </motion.tr>
-                                    </StaggerItem>
-                                ))}
-                            </tbody>
-                        </StaggerContainer>
+                        <tbody>
+                            {aggregateAnalysis.topPlayers.map((player, index) => (
+                                <motion.tr
+                                    key={player.player_id}
+                                    className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+                                >
+                                    <td className="py-3 px-4">
+                                        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                                            index < 3 ? 'bg-primary-500/20 text-primary-400' : 'bg-white/[0.05] text-[#94A3B8]'
+                                        }`}>
+                                            {index + 1}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-sm text-white font-medium">{player.player_name}</td>
+                                    <td className="py-3 px-4 text-sm text-[#94A3B8] font-mono">{player.avgBetweenness.toFixed(3)}</td>
+                                    <td className="py-3 px-4">
+                                        <span className="tag-glow">{player.appearances}</span>
+                                    </td>
+                                </motion.tr>
+                            ))}
+                        </tbody>
                     </table>
                 </div>
             </GlassCard>

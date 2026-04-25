@@ -16,22 +16,18 @@ export function ErrorState({
 }: ErrorStateProps) {
     return (
         <motion.div
-            className="flex flex-col items-center justify-center gap-5 py-12"
+            className="flex flex-col items-center justify-center gap-5 rounded-lg border border-[rgba(184,91,79,0.2)] bg-[var(--danger-soft)] px-6 py-12"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.18 }}
             role="alert"
         >
-            <motion.div
-                className="text-red-400/80"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-            >
+            <div className="text-[var(--danger)]">
                 <AlertCircle size={48} strokeWidth={1.5} />
-            </motion.div>
+            </div>
             <div className="text-center">
-                <h3 className="text-base font-semibold text-white mb-1">{title}</h3>
-                <p className="text-sm text-muted max-w-md">{description}</p>
+                <h3 className="mb-1 text-base font-semibold text-[var(--text-primary)]">{title}</h3>
+                <p className="max-w-md text-sm text-[var(--text-secondary)]">{description}</p>
             </div>
             {onRetry && (
                 <motion.button

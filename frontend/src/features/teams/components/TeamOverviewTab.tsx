@@ -1,12 +1,32 @@
 import { useTeamDetailsContext } from '@/features/teams/pages/TeamDetailsPage';
-import { FadeInUp, GlassCard, AnimatedCounter, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
+import { FadeInUp, GlassCard, AnimatedCounter, StaggerContainer, StaggerItem, ShimmerButton } from '@/shared/ui/motion';
 import { BarChart3, TrendingUp, Network, Activity } from 'lucide-react';
 
 export default function TeamOverviewTab() {
-    const { aggregateAnalysis, matches, team, analyzedMatches, season } = useTeamDetailsContext();
+    const { aggregateAnalysis, matches, team, analyzedMatches, season, analysisRequested, isAnalysisPending, requestAnalysis } =
+        useTeamDetailsContext();
 
     return (
         <div className="space-y-6">
+            {!analysisRequested && (
+                <FadeInUp>
+                    <GlassCard hover={false} className="p-5">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <h3 className="text-base font-semibold text-white">Sample ML Analysis Is Manual</h3>
+                                <p className="mt-1 text-sm text-[#94A3B8] max-w-2xl">
+                                    Team pages no longer auto-run match analysis on open. Start it manually to populate aggregate player,
+                                    pattern, and tactic insights from the latest five season matches.
+                                </p>
+                            </div>
+                            <ShimmerButton onClick={requestAnalysis} disabled={isAnalysisPending} className="shrink-0">
+                                {isAnalysisPending ? 'Running sample analysis...' : 'Run Sample Analysis'}
+                            </ShimmerButton>
+                        </div>
+                    </GlassCard>
+                </FadeInUp>
+            )}
+
             {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FadeInUp delay={0}>

@@ -29,9 +29,9 @@ fi
 
 if ! (
   cd "$BACKEND_DIR"
-  "$BACKEND_PYTHON" -c "import flask" >/dev/null 2>&1
+  "$BACKEND_PYTHON" -c "import flask, flask_cors, flask_limiter" >/dev/null 2>&1
 ); then
-  echo "Error: Backend dependencies are missing. Run 'cd backend && source venv/bin/activate && pip install -r ../requirements.txt' first."
+  echo "Error: Backend dependencies are missing. Run 'cd backend && source venv/bin/activate && python -m pip install -r ../requirements.txt' first."
   exit 1
 fi
 

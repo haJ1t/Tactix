@@ -5,14 +5,14 @@ export default {
         extend: {
             colors: {
                 primary: {
-                    50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
-                    400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
-                    800: '#166534', 900: '#14532d',
+                    50: '#f3faf5', 100: '#e2f3e7', 200: '#c7e6d1', 300: '#9dccad',
+                    400: '#6baf7a', 500: '#4f8f65', 600: '#31774e', 700: '#275f40',
+                    800: '#214d35', 900: '#1b3f2d',
                 },
-                pitch: { grass: '#2d8a4e', line: '#ffffff', dark: '#1e6b3a' },
-                surface: { DEFAULT: '#0A0A0F', card: '#111118', elevated: '#1A1A24', border: '#1E1E2A' },
-                accent: { blue: '#3B82F6', amber: '#F59E0B' },
-                muted: '#94A3B8',
+                pitch: { grass: '#5e9f72', line: '#f7fff8', dark: '#31774e' },
+                surface: { DEFAULT: '#f7f8f4', card: '#ffffff', elevated: '#fffdf8', border: '#dce4dc' },
+                accent: { blue: '#426f8f', amber: '#b88735' },
+                muted: '#64707D',
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],

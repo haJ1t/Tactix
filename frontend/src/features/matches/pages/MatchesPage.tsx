@@ -1,20 +1,34 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, CalendarDays, Crosshair, Play, Search, SlidersHorizontal } from 'lucide-react';
+import type { MatchFilters } from '@/entities/match';
 import { useMatches } from '@/features/matches/hooks/useMatches';
-import { LoadingState } from '@/shared/ui/LoadingState';
-import { ErrorState } from '@/shared/ui/ErrorState';
 import { formatMatchDate } from '@/shared/lib/format';
-import { PageTransition, FadeInUp, StaggerContainer, StaggerItem, GlassCard, FloatingOrb, AnimatedCounter } from '@/shared/ui/motion';
-import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Play, ExternalLink } from 'lucide-react';
+import { EmptyState } from '@/shared/ui/EmptyState';
+import { ErrorState } from '@/shared/ui/ErrorState';
+import { LoadingState } from '@/shared/ui/LoadingState';
+import { AnimatedCounter, FadeInUp, PageTransition, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
+
+const sortOptions: Array<NonNullable<MatchFilters['sortBy']>> = ['date-desc', 'date-asc', 'competition', 'season'];
+
+const getSortBy = (value: string | null): NonNullable<MatchFilters['sortBy']> =>
+    sortOptions.includes(value as NonNullable<MatchFilters['sortBy']>)
+        ? (value as NonNullable<MatchFilters['sortBy']>)
+        : 'date-desc';
 
 export default function MatchesPage() {
     const navigate = useNavigate();
-    const [search, setSearch] = useState('');
-    const [competition, setCompetition] = useState('all');
-    const [season, setSeason] = useState('all');
-    const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'competition' | 'season'>('date-desc');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [visibleLimit, setVisibleLimit] = useState(60);
+    const search = searchParams.get('q') || '';
+    const competition = searchParams.get('competition') || 'all';
+    const season = searchParams.get('season') || 'all';
+    const sortBy = getSortBy(searchParams.get('sort'));
     const matchesQuery = useMatches({ search, competition, season, sortBy });
+
+    useEffect(() => {
+        setVisibleLimit(60);
+    }, [competition, search, season, sortBy]);
 
     const summary = useMemo(
         () => ({
@@ -26,8 +40,24 @@ export default function MatchesPage() {
         [matchesQuery.data]
     );
 
+    const setFilter = (key: string, value: string, defaultValue = '') => {
+        const next = new URLSearchParams(searchParams);
+
+        if (!value || value === defaultValue) {
+            next.delete(key);
+        } else {
+            next.set(key, value);
+        }
+
+        setSearchParams(next, { replace: true });
+    };
+
+    const resetFilters = () => {
+        setSearchParams({}, { replace: true });
+    };
+
     if (matchesQuery.isLoading) {
-        return <LoadingState title="Loading matches" description="Preparing the match discovery workspace." />;
+        return <LoadingState title="Loading matches" description="Preparing the match catalog." />;
     }
 
     if (matchesQuery.isError) {
@@ -40,144 +70,192 @@ export default function MatchesPage() {
         );
     }
 
+    const hasFilters = Boolean(search || competition !== 'all' || season !== 'all' || sortBy !== 'date-desc');
+    const visibleMatches = (matchesQuery.data?.matches || []).slice(0, visibleLimit);
+    const hasMoreMatches = visibleMatches.length < (matchesQuery.data?.matches.length || 0);
+
     return (
         <PageTransition>
-            <div className="space-y-6">
-                {/* Hero */}
-                <div className="relative overflow-hidden rounded-2xl p-8" style={{ background: 'linear-gradient(135deg, #111118 0%, #0A0A0F 50%, #0A0F1A 100%)' }}>
-                    <FloatingOrb color="#3B82F6" size={250} top="-15%" left="75%" />
-                    <FloatingOrb color="#22C55E" size={150} top="70%" left="-3%" delay={1} />
-
-                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                        <div className="space-y-2">
-                            <span className="text-xs font-semibold uppercase tracking-widest text-primary-400">Match Discovery</span>
-                            <h1 className="text-2xl font-bold text-white">Matches</h1>
-                            <p className="text-sm text-[#94A3B8] max-w-lg">Browse the library, narrow the right fixture, and move into a single match workspace.</p>
+            <div className="space-y-5">
+                <section className="glass-card overflow-hidden">
+                    <div className="flex flex-col gap-4 border-b border-[var(--border-soft)] bg-[var(--surface-raised)] px-5 py-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--primary-strong)]">Match discovery</p>
+                            <h1 className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">Match library</h1>
+                            <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">
+                                Browse fixtures, scan scorelines, and open the right match workspace without losing filter context.
+                            </p>
                         </div>
-                        <div className="flex gap-3 items-center">
-                            <div className="glass-card px-4 py-2 text-center">
-                                <span className="text-2xl font-bold text-white block"><AnimatedCounter value={summary.filteredMatches} /></span>
-                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider">Visible</span>
-                            </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[520px]">
+                            {[
+                                ['Catalog', summary.totalMatches],
+                                ['Visible', summary.filteredMatches],
+                                ['Competitions', summary.competitions],
+                                ['Seasons', summary.seasons],
+                            ].map(([label, value]) => (
+                                <div key={label} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] px-3 py-2">
+                                    <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                                        {label}
+                                    </span>
+                                    <strong className="mt-1 block text-lg tabular-nums text-[var(--text-primary)]">
+                                        <AnimatedCounter value={Number(value)} />
+                                    </strong>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                </div>
 
-                {/* Controls */}
-                <FadeInUp>
-                    <GlassCard className="p-5 space-y-4" hover={false}>
-                        <div className="flex items-center gap-2 text-[#94A3B8] mb-2">
-                            <SlidersHorizontal size={14} />
-                            <span className="text-xs font-medium uppercase tracking-wider">Control Surface</span>
+                    <div className="space-y-4 p-5">
+                        <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                            <SlidersHorizontal size={15} />
+                            <span className="text-xs font-semibold uppercase tracking-[0.12em]">Filters</span>
+                            {matchesQuery.isFetching && <span className="tag-blue ml-auto">Refreshing</span>}
                         </div>
 
-                        <div className="relative">
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A4A5A]" />
-                            <input
-                                className="form-input-dark pl-10"
-                                placeholder="Search team, competition, or season..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <select className="form-select-dark" value={competition} onChange={(e) => setCompetition(e.target.value)}>
+                        <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.35fr)_repeat(3,minmax(160px,0.65fr))_auto]">
+                            <label className="relative block">
+                                <span className="sr-only">Search matches</span>
+                                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                                <input
+                                    className="form-input-dark pl-10"
+                                    placeholder="Search team, competition, or season"
+                                    value={search}
+                                    onChange={(event) => setFilter('q', event.target.value)}
+                                />
+                            </label>
+                            <select
+                                className="form-select-dark"
+                                value={competition}
+                                aria-label="Filter by competition"
+                                onChange={(event) => setFilter('competition', event.target.value, 'all')}
+                            >
                                 <option value="all">All competitions</option>
                                 {matchesQuery.data?.competitions.map((item) => (
                                     <option key={item} value={item}>{item}</option>
                                 ))}
                             </select>
-                            <select className="form-select-dark" value={season} onChange={(e) => setSeason(e.target.value)}>
+                            <select
+                                className="form-select-dark"
+                                value={season}
+                                aria-label="Filter by season"
+                                onChange={(event) => setFilter('season', event.target.value, 'all')}
+                            >
                                 <option value="all">All seasons</option>
                                 {matchesQuery.data?.seasons.map((item) => (
                                     <option key={item} value={item}>{item}</option>
                                 ))}
                             </select>
-                            <select className="form-select-dark" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
+                            <select
+                                className="form-select-dark"
+                                value={sortBy}
+                                aria-label="Sort matches"
+                                onChange={(event) => setFilter('sort', event.target.value, 'date-desc')}
+                            >
                                 <option value="date-desc">Newest first</option>
                                 <option value="date-asc">Oldest first</option>
                                 <option value="competition">Competition</option>
                                 <option value="season">Season</option>
                             </select>
+                            <button className="btn-ghost" type="button" onClick={resetFilters} disabled={!hasFilters}>
+                                Reset
+                            </button>
                         </div>
+                    </div>
+                </section>
 
-                        <div className="flex gap-6">
+                <FadeInUp>
+                    <section className="glass-card overflow-hidden">
+                        <div className="flex flex-col gap-2 border-b border-[var(--border-soft)] bg-[var(--surface)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Catalog</span>
-                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.totalMatches} /></span>
+                                <h2 className="text-base font-semibold text-[var(--text-primary)]">Fixture list</h2>
+                                <p className="text-sm text-[var(--text-secondary)]">
+                                    Showing {visibleMatches.length} of {summary.filteredMatches} matches
+                                </p>
                             </div>
-                            <div>
-                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Visible</span>
-                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.filteredMatches} /></span>
-                            </div>
-                            <div>
-                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Competitions</span>
-                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.competitions} /></span>
-                            </div>
-                            <div>
-                                <span className="text-[10px] text-[#94A3B8] uppercase tracking-wider block">Seasons</span>
-                                <span className="text-sm font-semibold text-white"><AnimatedCounter value={summary.seasons} /></span>
-                            </div>
-                        </div>
-                    </GlassCard>
-                </FadeInUp>
-
-                {/* Match List */}
-                <FadeInUp delay={0.1}>
-                    <GlassCard className="p-5" hover={false}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-semibold text-white">Match Library</h3>
-                            <span className="text-xs text-[#94A3B8]">{summary.filteredMatches} matches</span>
+                            <span className="tag-glow inline-flex w-fit items-center gap-1">
+                                <CalendarDays size={13} />
+                                {sortBy === 'date-desc' ? 'Newest first' : sortBy === 'date-asc' ? 'Oldest first' : sortBy}
+                            </span>
                         </div>
 
                         {matchesQuery.data?.matches.length ? (
-                            <StaggerContainer className="space-y-2">
-                                {matchesQuery.data.matches.map((match) => (
+                            <StaggerContainer className="divide-y divide-[var(--border-soft)]" staggerDelay={0.035}>
+                                {visibleMatches.map((match) => (
                                     <StaggerItem key={match.match_id}>
-                                        <motion.div
-                                            className="flex items-center justify-between p-4 rounded-xl border border-white/[0.04] hover:border-primary-500/20 hover:bg-white/[0.02] transition-all cursor-pointer group"
-                                            whileHover={{ x: 4 }}
-                                            transition={{ duration: 0.15 }}
-                                        >
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-4 mb-1.5">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-semibold text-white">{match.home_team?.team_name || 'Home'}</span>
-                                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/[0.04]">
-                                                            <span className="text-lg font-bold text-white">{match.home_score}</span>
-                                                            <span className="text-[#94A3B8] text-sm">:</span>
-                                                            <span className="text-lg font-bold text-white">{match.away_score}</span>
-                                                        </div>
-                                                        <span className="text-sm font-semibold text-white">{match.away_team?.team_name || 'Away'}</span>
-                                                    </div>
+                                        <article className="grid gap-4 px-5 py-4 transition-colors hover:bg-[var(--surface-soft)] lg:grid-cols-[minmax(0,1.4fr)_170px_1fr_auto] lg:items-center">
+                                            <div className="min-w-0">
+                                                <div className="flex min-w-0 items-center gap-3">
+                                                    <Crosshair className="h-4 w-4 shrink-0 text-[var(--primary-strong)]" />
+                                                    <h3
+                                                        className="min-w-0 truncate text-sm font-semibold text-[var(--text-primary)]"
+                                                        title={`${match.home_team?.team_name || 'Home'} vs ${match.away_team?.team_name || 'Away'}`}
+                                                    >
+                                                        <span>{match.home_team?.team_name || 'Home'}</span>
+                                                        <span className="px-1.5 text-[var(--text-muted)]"> vs </span>
+                                                        <span>{match.away_team?.team_name || 'Away'}</span>
+                                                    </h3>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
-                                                    <span className="tag-glow text-[10px]">{match.competition || 'Competition'}</span>
-                                                    <span>{match.season || 'Season n/a'}</span>
-                                                    <span className="text-white/20">·</span>
-                                                    <span>{formatMatchDate(match.match_date)}</span>
-                                                </div>
+                                                <p className="mt-1 truncate text-xs text-[var(--text-secondary)]">
+                                                    {match.competition || 'Competition unavailable'} · {match.season || 'Season n/a'}
+                                                </p>
                                             </div>
 
-                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => navigate(`/matches/${match.match_id}/overview`)}>
-                                                    <ExternalLink size={14} />
+                                            <div className="flex w-fit items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 tabular-nums">
+                                                <span className="text-xl font-bold">{match.home_score}</span>
+                                                <span className="text-[var(--text-muted)]">-</span>
+                                                <span className="text-xl font-bold">{match.away_score}</span>
+                                            </div>
+
+                                            <div className="text-sm text-[var(--text-secondary)]">
+                                                {formatMatchDate(match.match_date)}
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2 lg:justify-end">
+                                                <button
+                                                    className="btn-ghost"
+                                                    type="button"
+                                                    onClick={() => navigate(`/matches/${match.match_id}/overview`)}
+                                                >
+                                                    Open <ArrowRight size={14} />
                                                 </button>
-                                                <button className="btn-glow text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={() => navigate(`/matches/${match.match_id}/overview?run=1`)}>
-                                                    <Play size={12} /> Analyze
+                                                <button
+                                                    className="btn-glow"
+                                                    type="button"
+                                                    onClick={() => navigate(`/matches/${match.match_id}/overview?run=1`)}
+                                                >
+                                                    <Play size={14} /> Analyze
                                                 </button>
                                             </div>
-                                        </motion.div>
+                                        </article>
                                     </StaggerItem>
                                 ))}
+                                {hasMoreMatches && (
+                                    <div className="flex justify-center px-5 py-4">
+                                        <button
+                                            className="btn-ghost"
+                                            type="button"
+                                            onClick={() => setVisibleLimit((current) => current + 60)}
+                                        >
+                                            Show 60 more matches
+                                        </button>
+                                    </div>
+                                )}
                             </StaggerContainer>
                         ) : (
-                            <div className="text-center py-12">
-                                <p className="text-sm text-[#94A3B8]">No matches match the current filters. Widen or reset to see more.</p>
+                            <div className="p-5">
+                                <EmptyState
+                                    title="No matches match these filters"
+                                    description="Widen the search, change competition or season, or reset the catalog filters."
+                                    icon={<Search size={36} />}
+                                    action={
+                                        <button className="btn-ghost" type="button" onClick={resetFilters}>
+                                            Reset filters
+                                        </button>
+                                    }
+                                />
                             </div>
                         )}
-                    </GlassCard>
+                    </section>
                 </FadeInUp>
             </div>
         </PageTransition>

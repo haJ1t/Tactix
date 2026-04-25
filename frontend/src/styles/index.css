@@ -3621,9 +3621,10 @@ body {
 }
 
 .pass-network-wrapper {
+    position: relative;
     overflow: hidden;
-    border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 14px;
+    background: #0d1f14;
 }
 
 .pass-network-empty {
@@ -3635,6 +3636,47 @@ body {
     border-radius: 18px;
     background: var(--bg-primary);
     color: var(--text-secondary);
+}
+
+.pass-network-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.55), rgba(245, 158, 11, 0.55));
+    outline: none;
+    cursor: pointer;
+}
+
+.pass-network-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 2px solid #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: transform 150ms ease;
+}
+
+.pass-network-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.12);
+}
+
+.pass-network-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 2px solid #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.pass-network-slider:focus-visible {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
 }
 
 .sidebar-footer {

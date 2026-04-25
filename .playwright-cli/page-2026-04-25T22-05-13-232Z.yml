@@ -1,0 +1,8 @@
+- generic [ref=e2]:
+  - generic [ref=e6]:
+    - heading "Loading view" [level=3] [ref=e7]
+    - paragraph [ref=e8]: Preparing the next workspace.
+  - generic [ref=e9]:
+    - img [ref=e11]
+    - button "Open Tanstack query devtools" [ref=e59] [cursor=pointer]:
+      - img [ref=e60]

@@ -20,7 +20,7 @@ export function Tabs({ items }: TabsProps) {
     };
 
     return (
-        <nav className="flex items-center gap-1 p-1 glass-card" aria-label="Section tabs">
+        <nav className="glass-card flex items-center gap-1 overflow-x-auto p-1" aria-label="Section tabs">
             {items.map((item) => {
                 const path = getPath(item.to);
                 const isActive = location.pathname.endsWith(path);
@@ -29,14 +29,14 @@ export function Tabs({ items }: TabsProps) {
                     <NavLink
                         key={`${item.label}-${path}`}
                         to={item.to}
-                        className="relative px-4 py-2.5 text-sm font-medium rounded-xl transition-colors cursor-pointer"
-                        style={{ color: isActive ? '#F8FAFC' : '#94A3B8' }}
+                        className="relative min-h-10 shrink-0 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors"
+                        style={{ color: isActive ? 'var(--primary-strong)' : 'var(--text-secondary)' }}
                     >
                         {isActive && (
                             <motion.div
                                 layoutId="tab-indicator"
-                                className="absolute inset-0 rounded-xl"
-                                style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}
+                                className="absolute inset-0 rounded-md"
+                                style={{ background: 'var(--primary-soft)', border: '1px solid rgba(79, 143, 101, 0.18)' }}
                                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                             />
                         )}

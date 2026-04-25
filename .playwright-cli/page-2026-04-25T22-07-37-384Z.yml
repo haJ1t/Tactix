@@ -1,0 +1,1183 @@
+- generic [ref=e2]:
+  - generic [ref=e108]:
+    - complementary [ref=e1366]:
+      - button "Close navigation" [ref=e1367] [cursor=pointer]:
+        - img [ref=e1368]
+      - generic [ref=e1371]:
+        - img [ref=e1373]
+        - generic [ref=e1375]:
+          - heading "Tactix" [level=1] [ref=e1376]
+          - paragraph [ref=e1377]: Football analytics
+      - navigation "Primary navigation" [ref=e1378]:
+        - link "Overview" [ref=e1379] [cursor=pointer]:
+          - /url: /overview
+          - img [ref=e1380]
+          - generic [ref=e1385]: Overview
+        - link "Matches" [ref=e1386] [cursor=pointer]:
+          - /url: /matches
+          - img [ref=e1387]
+          - generic [ref=e1389]: Matches
+        - link "Teams" [ref=e1391] [cursor=pointer]:
+          - /url: /teams
+          - img [ref=e1392]
+          - generic [ref=e1397]: Teams
+        - link "Reports" [ref=e1398] [cursor=pointer]:
+          - /url: /reports
+          - img [ref=e1399]
+          - generic [ref=e1402]: Reports
+    - generic [ref=e109]:
+      - banner [ref=e110]:
+        - generic [ref=e112]:
+          - button "Open navigation" [active] [ref=e113] [cursor=pointer]:
+            - img [ref=e114]
+          - generic [ref=e115]:
+            - paragraph [ref=e116]: Tactix
+            - heading "Matches" [level=2] [ref=e117]
+      - main [ref=e118]:
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - paragraph [ref=e125]: Match discovery
+                - heading "Match library" [level=1] [ref=e126]
+                - paragraph [ref=e127]: Browse fixtures, scan scorelines, and open the right match workspace without losing filter context.
+              - generic [ref=e128]:
+                - generic [ref=e129]:
+                  - generic [ref=e130]: Catalog
+                  - strong [ref=e131]: "661"
+                - generic [ref=e132]:
+                  - generic [ref=e133]: Visible
+                  - strong [ref=e134]: "661"
+                - generic [ref=e135]:
+                  - generic [ref=e136]: Competitions
+                  - strong [ref=e137]: "5"
+                - generic [ref=e138]:
+                  - generic [ref=e139]: Seasons
+                  - strong [ref=e140]: "8"
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - img [ref=e143]
+                - generic [ref=e144]: Filters
+              - generic [ref=e145]:
+                - generic [ref=e146]:
+                  - generic [ref=e147]: Search matches
+                  - img
+                  - textbox "Search matches" [ref=e148]:
+                    - /placeholder: Search team, competition, or season
+                - combobox "Filter by competition" [ref=e149] [cursor=pointer]:
+                  - option "All competitions" [selected]
+                  - option "Champions League"
+                  - option "FIFA World Cup"
+                  - option "La Liga"
+                  - option "Premier League"
+                  - option "UEFA Euro"
+                - combobox "Filter by season" [ref=e150] [cursor=pointer]:
+                  - option "All seasons" [selected]
+                  - option "2015/2016"
+                  - option "2017/2018"
+                  - option "2018"
+                  - option "2018/2019"
+                  - option "2019/2020"
+                  - option "2020/2021"
+                  - option "2022"
+                  - option "2024"
+                - combobox "Sort matches" [ref=e151] [cursor=pointer]:
+                  - option "Newest first" [selected]
+                  - option "Oldest first"
+                  - option "Competition"
+                  - option "Season"
+                - button "Reset" [disabled] [ref=e152]
+          - generic [ref=e154]:
+            - generic [ref=e155]:
+              - generic [ref=e156]:
+                - heading "Fixture list" [level=2] [ref=e157]
+                - paragraph [ref=e158]: Showing 60 of 661 matches
+              - generic [ref=e159]:
+                - img [ref=e160]
+                - text: Newest first
+            - generic [ref=e162]:
+              - article [ref=e164]:
+                - generic [ref=e165]:
+                  - generic [ref=e166]:
+                    - img [ref=e167]
+                    - heading "Spain vs England" [level=3] [ref=e1403]
+                  - paragraph [ref=e170]: UEFA Euro · 2024
+                - generic [ref=e171]:
+                  - generic [ref=e172]: "2"
+                  - generic [ref=e173]: "-"
+                  - generic [ref=e174]: "1"
+                - generic [ref=e175]: 14 Jul 2024
+                - generic [ref=e176]:
+                  - button "Open" [ref=e177] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e178]
+                  - button "Analyze" [ref=e180] [cursor=pointer]:
+                    - img [ref=e181]
+                    - text: Analyze
+              - article [ref=e184]:
+                - generic [ref=e185]:
+                  - generic [ref=e186]:
+                    - img [ref=e187]
+                    - heading "Netherlands vs England" [level=3] [ref=e1404]
+                  - paragraph [ref=e190]: UEFA Euro · 2024
+                - generic [ref=e191]:
+                  - generic [ref=e192]: "1"
+                  - generic [ref=e193]: "-"
+                  - generic [ref=e194]: "2"
+                - generic [ref=e195]: 10 Jul 2024
+                - generic [ref=e196]:
+                  - button "Open" [ref=e197] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e198]
+                  - button "Analyze" [ref=e200] [cursor=pointer]:
+                    - img [ref=e201]
+                    - text: Analyze
+              - article [ref=e204]:
+                - generic [ref=e205]:
+                  - generic [ref=e206]:
+                    - img [ref=e207]
+                    - heading "Spain vs France" [level=3] [ref=e1405]
+                  - paragraph [ref=e210]: UEFA Euro · 2024
+                - generic [ref=e211]:
+                  - generic [ref=e212]: "2"
+                  - generic [ref=e213]: "-"
+                  - generic [ref=e214]: "1"
+                - generic [ref=e215]: 09 Jul 2024
+                - generic [ref=e216]:
+                  - button "Open" [ref=e217] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e218]
+                  - button "Analyze" [ref=e220] [cursor=pointer]:
+                    - img [ref=e221]
+                    - text: Analyze
+              - article [ref=e224]:
+                - generic [ref=e225]:
+                  - generic [ref=e226]:
+                    - img [ref=e227]
+                    - heading "England vs Switzerland" [level=3] [ref=e1406]
+                  - paragraph [ref=e230]: UEFA Euro · 2024
+                - generic [ref=e231]:
+                  - generic [ref=e232]: "1"
+                  - generic [ref=e233]: "-"
+                  - generic [ref=e234]: "1"
+                - generic [ref=e235]: 06 Jul 2024
+                - generic [ref=e236]:
+                  - button "Open" [ref=e237] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e238]
+                  - button "Analyze" [ref=e240] [cursor=pointer]:
+                    - img [ref=e241]
+                    - text: Analyze
+              - article [ref=e244]:
+                - generic [ref=e245]:
+                  - generic [ref=e246]:
+                    - img [ref=e247]
+                    - heading "Netherlands vs Turkey" [level=3] [ref=e1407]
+                  - paragraph [ref=e250]: UEFA Euro · 2024
+                - generic [ref=e251]:
+                  - generic [ref=e252]: "2"
+                  - generic [ref=e253]: "-"
+                  - generic [ref=e254]: "1"
+                - generic [ref=e255]: 06 Jul 2024
+                - generic [ref=e256]:
+                  - button "Open" [ref=e257] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e258]
+                  - button "Analyze" [ref=e260] [cursor=pointer]:
+                    - img [ref=e261]
+                    - text: Analyze
+              - article [ref=e264]:
+                - generic [ref=e265]:
+                  - generic [ref=e266]:
+                    - img [ref=e267]
+                    - heading "Spain vs Germany" [level=3] [ref=e1408]
+                  - paragraph [ref=e270]: UEFA Euro · 2024
+                - generic [ref=e271]:
+                  - generic [ref=e272]: "2"
+                  - generic [ref=e273]: "-"
+                  - generic [ref=e274]: "1"
+                - generic [ref=e275]: 05 Jul 2024
+                - generic [ref=e276]:
+                  - button "Open" [ref=e277] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e278]
+                  - button "Analyze" [ref=e280] [cursor=pointer]:
+                    - img [ref=e281]
+                    - text: Analyze
+              - article [ref=e284]:
+                - generic [ref=e285]:
+                  - generic [ref=e286]:
+                    - img [ref=e287]
+                    - heading "Portugal vs France" [level=3] [ref=e1409]
+                  - paragraph [ref=e290]: UEFA Euro · 2024
+                - generic [ref=e291]:
+                  - generic [ref=e292]: "0"
+                  - generic [ref=e293]: "-"
+                  - generic [ref=e294]: "0"
+                - generic [ref=e295]: 05 Jul 2024
+                - generic [ref=e296]:
+                  - button "Open" [ref=e297] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e298]
+                  - button "Analyze" [ref=e300] [cursor=pointer]:
+                    - img [ref=e301]
+                    - text: Analyze
+              - article [ref=e304]:
+                - generic [ref=e305]:
+                  - generic [ref=e306]:
+                    - img [ref=e307]
+                    - heading "Romania vs Netherlands" [level=3] [ref=e1410]
+                  - paragraph [ref=e310]: UEFA Euro · 2024
+                - generic [ref=e311]:
+                  - generic [ref=e312]: "0"
+                  - generic [ref=e313]: "-"
+                  - generic [ref=e314]: "3"
+                - generic [ref=e315]: 02 Jul 2024
+                - generic [ref=e316]:
+                  - button "Open" [ref=e317] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e318]
+                  - button "Analyze" [ref=e320] [cursor=pointer]:
+                    - img [ref=e321]
+                    - text: Analyze
+              - article [ref=e324]:
+                - generic [ref=e325]:
+                  - generic [ref=e326]:
+                    - img [ref=e327]
+                    - heading "Austria vs Turkey" [level=3] [ref=e1411]
+                  - paragraph [ref=e330]: UEFA Euro · 2024
+                - generic [ref=e331]:
+                  - generic [ref=e332]: "1"
+                  - generic [ref=e333]: "-"
+                  - generic [ref=e334]: "2"
+                - generic [ref=e335]: 02 Jul 2024
+                - generic [ref=e336]:
+                  - button "Open" [ref=e337] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e338]
+                  - button "Analyze" [ref=e340] [cursor=pointer]:
+                    - img [ref=e341]
+                    - text: Analyze
+              - article [ref=e344]:
+                - generic [ref=e345]:
+                  - generic [ref=e346]:
+                    - img [ref=e347]
+                    - heading "France vs Belgium" [level=3] [ref=e1412]
+                  - paragraph [ref=e350]: UEFA Euro · 2024
+                - generic [ref=e351]:
+                  - generic [ref=e352]: "1"
+                  - generic [ref=e353]: "-"
+                  - generic [ref=e354]: "0"
+                - generic [ref=e355]: 01 Jul 2024
+                - generic [ref=e356]:
+                  - button "Open" [ref=e357] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e358]
+                  - button "Analyze" [ref=e360] [cursor=pointer]:
+                    - img [ref=e361]
+                    - text: Analyze
+              - article [ref=e364]:
+                - generic [ref=e365]:
+                  - generic [ref=e366]:
+                    - img [ref=e367]
+                    - heading "Portugal vs Slovenia" [level=3] [ref=e1413]
+                  - paragraph [ref=e370]: UEFA Euro · 2024
+                - generic [ref=e371]:
+                  - generic [ref=e372]: "0"
+                  - generic [ref=e373]: "-"
+                  - generic [ref=e374]: "0"
+                - generic [ref=e375]: 01 Jul 2024
+                - generic [ref=e376]:
+                  - button "Open" [ref=e377] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e378]
+                  - button "Analyze" [ref=e380] [cursor=pointer]:
+                    - img [ref=e381]
+                    - text: Analyze
+              - article [ref=e384]:
+                - generic [ref=e385]:
+                  - generic [ref=e386]:
+                    - img [ref=e387]
+                    - heading "England vs Slovakia" [level=3] [ref=e1414]
+                  - paragraph [ref=e390]: UEFA Euro · 2024
+                - generic [ref=e391]:
+                  - generic [ref=e392]: "2"
+                  - generic [ref=e393]: "-"
+                  - generic [ref=e394]: "1"
+                - generic [ref=e395]: 30 Jun 2024
+                - generic [ref=e396]:
+                  - button "Open" [ref=e397] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e398]
+                  - button "Analyze" [ref=e400] [cursor=pointer]:
+                    - img [ref=e401]
+                    - text: Analyze
+              - article [ref=e404]:
+                - generic [ref=e405]:
+                  - generic [ref=e406]:
+                    - img [ref=e407]
+                    - heading "Spain vs Georgia" [level=3] [ref=e1415]
+                  - paragraph [ref=e410]: UEFA Euro · 2024
+                - generic [ref=e411]:
+                  - generic [ref=e412]: "4"
+                  - generic [ref=e413]: "-"
+                  - generic [ref=e414]: "1"
+                - generic [ref=e415]: 30 Jun 2024
+                - generic [ref=e416]:
+                  - button "Open" [ref=e417] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e418]
+                  - button "Analyze" [ref=e420] [cursor=pointer]:
+                    - img [ref=e421]
+                    - text: Analyze
+              - article [ref=e424]:
+                - generic [ref=e425]:
+                  - generic [ref=e426]:
+                    - img [ref=e427]
+                    - heading "Switzerland vs Italy" [level=3] [ref=e1416]
+                  - paragraph [ref=e430]: UEFA Euro · 2024
+                - generic [ref=e431]:
+                  - generic [ref=e432]: "2"
+                  - generic [ref=e433]: "-"
+                  - generic [ref=e434]: "0"
+                - generic [ref=e435]: 29 Jun 2024
+                - generic [ref=e436]:
+                  - button "Open" [ref=e437] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e438]
+                  - button "Analyze" [ref=e440] [cursor=pointer]:
+                    - img [ref=e441]
+                    - text: Analyze
+              - article [ref=e444]:
+                - generic [ref=e445]:
+                  - generic [ref=e446]:
+                    - img [ref=e447]
+                    - heading "Germany vs Denmark" [level=3] [ref=e1417]
+                  - paragraph [ref=e450]: UEFA Euro · 2024
+                - generic [ref=e451]:
+                  - generic [ref=e452]: "2"
+                  - generic [ref=e453]: "-"
+                  - generic [ref=e454]: "0"
+                - generic [ref=e455]: 29 Jun 2024
+                - generic [ref=e456]:
+                  - button "Open" [ref=e457] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e458]
+                  - button "Analyze" [ref=e460] [cursor=pointer]:
+                    - img [ref=e461]
+                    - text: Analyze
+              - article [ref=e464]:
+                - generic [ref=e465]:
+                  - generic [ref=e466]:
+                    - img [ref=e467]
+                    - heading "Slovakia vs Romania" [level=3] [ref=e1418]
+                  - paragraph [ref=e470]: UEFA Euro · 2024
+                - generic [ref=e471]:
+                  - generic [ref=e472]: "1"
+                  - generic [ref=e473]: "-"
+                  - generic [ref=e474]: "1"
+                - generic [ref=e475]: 26 Jun 2024
+                - generic [ref=e476]:
+                  - button "Open" [ref=e477] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e478]
+                  - button "Analyze" [ref=e480] [cursor=pointer]:
+                    - img [ref=e481]
+                    - text: Analyze
+              - article [ref=e484]:
+                - generic [ref=e485]:
+                  - generic [ref=e486]:
+                    - img [ref=e487]
+                    - heading "Czech Republic vs Turkey" [level=3] [ref=e1419]
+                  - paragraph [ref=e490]: UEFA Euro · 2024
+                - generic [ref=e491]:
+                  - generic [ref=e492]: "1"
+                  - generic [ref=e493]: "-"
+                  - generic [ref=e494]: "2"
+                - generic [ref=e495]: 26 Jun 2024
+                - generic [ref=e496]:
+                  - button "Open" [ref=e497] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e498]
+                  - button "Analyze" [ref=e500] [cursor=pointer]:
+                    - img [ref=e501]
+                    - text: Analyze
+              - article [ref=e504]:
+                - generic [ref=e505]:
+                  - generic [ref=e506]:
+                    - img [ref=e507]
+                    - heading "Georgia vs Portugal" [level=3] [ref=e1420]
+                  - paragraph [ref=e510]: UEFA Euro · 2024
+                - generic [ref=e511]:
+                  - generic [ref=e512]: "2"
+                  - generic [ref=e513]: "-"
+                  - generic [ref=e514]: "0"
+                - generic [ref=e515]: 26 Jun 2024
+                - generic [ref=e516]:
+                  - button "Open" [ref=e517] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e518]
+                  - button "Analyze" [ref=e520] [cursor=pointer]:
+                    - img [ref=e521]
+                    - text: Analyze
+              - article [ref=e524]:
+                - generic [ref=e525]:
+                  - generic [ref=e526]:
+                    - img [ref=e527]
+                    - heading "Ukraine vs Belgium" [level=3] [ref=e1421]
+                  - paragraph [ref=e530]: UEFA Euro · 2024
+                - generic [ref=e531]:
+                  - generic [ref=e532]: "0"
+                  - generic [ref=e533]: "-"
+                  - generic [ref=e534]: "0"
+                - generic [ref=e535]: 26 Jun 2024
+                - generic [ref=e536]:
+                  - button "Open" [ref=e537] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e538]
+                  - button "Analyze" [ref=e540] [cursor=pointer]:
+                    - img [ref=e541]
+                    - text: Analyze
+              - article [ref=e544]:
+                - generic [ref=e545]:
+                  - generic [ref=e546]:
+                    - img [ref=e547]
+                    - heading "Netherlands vs Austria" [level=3] [ref=e1422]
+                  - paragraph [ref=e550]: UEFA Euro · 2024
+                - generic [ref=e551]:
+                  - generic [ref=e552]: "2"
+                  - generic [ref=e553]: "-"
+                  - generic [ref=e554]: "3"
+                - generic [ref=e555]: 25 Jun 2024
+                - generic [ref=e556]:
+                  - button "Open" [ref=e557] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e558]
+                  - button "Analyze" [ref=e560] [cursor=pointer]:
+                    - img [ref=e561]
+                    - text: Analyze
+              - article [ref=e564]:
+                - generic [ref=e565]:
+                  - generic [ref=e566]:
+                    - img [ref=e567]
+                    - heading "England vs Slovenia" [level=3] [ref=e1423]
+                  - paragraph [ref=e570]: UEFA Euro · 2024
+                - generic [ref=e571]:
+                  - generic [ref=e572]: "0"
+                  - generic [ref=e573]: "-"
+                  - generic [ref=e574]: "0"
+                - generic [ref=e575]: 25 Jun 2024
+                - generic [ref=e576]:
+                  - button "Open" [ref=e577] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e578]
+                  - button "Analyze" [ref=e580] [cursor=pointer]:
+                    - img [ref=e581]
+                    - text: Analyze
+              - article [ref=e584]:
+                - generic [ref=e585]:
+                  - generic [ref=e586]:
+                    - img [ref=e587]
+                    - heading "Denmark vs Serbia" [level=3] [ref=e1424]
+                  - paragraph [ref=e590]: UEFA Euro · 2024
+                - generic [ref=e591]:
+                  - generic [ref=e592]: "0"
+                  - generic [ref=e593]: "-"
+                  - generic [ref=e594]: "0"
+                - generic [ref=e595]: 25 Jun 2024
+                - generic [ref=e596]:
+                  - button "Open" [ref=e597] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e598]
+                  - button "Analyze" [ref=e600] [cursor=pointer]:
+                    - img [ref=e601]
+                    - text: Analyze
+              - article [ref=e604]:
+                - generic [ref=e605]:
+                  - generic [ref=e606]:
+                    - img [ref=e607]
+                    - heading "France vs Poland" [level=3] [ref=e1425]
+                  - paragraph [ref=e610]: UEFA Euro · 2024
+                - generic [ref=e611]:
+                  - generic [ref=e612]: "1"
+                  - generic [ref=e613]: "-"
+                  - generic [ref=e614]: "1"
+                - generic [ref=e615]: 25 Jun 2024
+                - generic [ref=e616]:
+                  - button "Open" [ref=e617] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e618]
+                  - button "Analyze" [ref=e620] [cursor=pointer]:
+                    - img [ref=e621]
+                    - text: Analyze
+              - article [ref=e624]:
+                - generic [ref=e625]:
+                  - generic [ref=e626]:
+                    - img [ref=e627]
+                    - heading "Croatia vs Italy" [level=3] [ref=e1426]
+                  - paragraph [ref=e630]: UEFA Euro · 2024
+                - generic [ref=e631]:
+                  - generic [ref=e632]: "1"
+                  - generic [ref=e633]: "-"
+                  - generic [ref=e634]: "1"
+                - generic [ref=e635]: 24 Jun 2024
+                - generic [ref=e636]:
+                  - button "Open" [ref=e637] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e638]
+                  - button "Analyze" [ref=e640] [cursor=pointer]:
+                    - img [ref=e641]
+                    - text: Analyze
+              - article [ref=e644]:
+                - generic [ref=e645]:
+                  - generic [ref=e646]:
+                    - img [ref=e647]
+                    - heading "Albania vs Spain" [level=3] [ref=e1427]
+                  - paragraph [ref=e650]: UEFA Euro · 2024
+                - generic [ref=e651]:
+                  - generic [ref=e652]: "0"
+                  - generic [ref=e653]: "-"
+                  - generic [ref=e654]: "1"
+                - generic [ref=e655]: 24 Jun 2024
+                - generic [ref=e656]:
+                  - button "Open" [ref=e657] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e658]
+                  - button "Analyze" [ref=e660] [cursor=pointer]:
+                    - img [ref=e661]
+                    - text: Analyze
+              - article [ref=e664]:
+                - generic [ref=e665]:
+                  - generic [ref=e666]:
+                    - img [ref=e667]
+                    - heading "Switzerland vs Germany" [level=3] [ref=e1428]
+                  - paragraph [ref=e670]: UEFA Euro · 2024
+                - generic [ref=e671]:
+                  - generic [ref=e672]: "1"
+                  - generic [ref=e673]: "-"
+                  - generic [ref=e674]: "1"
+                - generic [ref=e675]: 23 Jun 2024
+                - generic [ref=e676]:
+                  - button "Open" [ref=e677] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e678]
+                  - button "Analyze" [ref=e680] [cursor=pointer]:
+                    - img [ref=e681]
+                    - text: Analyze
+              - article [ref=e684]:
+                - generic [ref=e685]:
+                  - generic [ref=e686]:
+                    - img [ref=e687]
+                    - heading "Scotland vs Hungary" [level=3] [ref=e1429]
+                  - paragraph [ref=e690]: UEFA Euro · 2024
+                - generic [ref=e691]:
+                  - generic [ref=e692]: "0"
+                  - generic [ref=e693]: "-"
+                  - generic [ref=e694]: "1"
+                - generic [ref=e695]: 23 Jun 2024
+                - generic [ref=e696]:
+                  - button "Open" [ref=e697] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e698]
+                  - button "Analyze" [ref=e700] [cursor=pointer]:
+                    - img [ref=e701]
+                    - text: Analyze
+              - article [ref=e704]:
+                - generic [ref=e705]:
+                  - generic [ref=e706]:
+                    - img [ref=e707]
+                    - heading "Turkey vs Portugal" [level=3] [ref=e1430]
+                  - paragraph [ref=e710]: UEFA Euro · 2024
+                - generic [ref=e711]:
+                  - generic [ref=e712]: "0"
+                  - generic [ref=e713]: "-"
+                  - generic [ref=e714]: "3"
+                - generic [ref=e715]: 22 Jun 2024
+                - generic [ref=e716]:
+                  - button "Open" [ref=e717] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e718]
+                  - button "Analyze" [ref=e720] [cursor=pointer]:
+                    - img [ref=e721]
+                    - text: Analyze
+              - article [ref=e724]:
+                - generic [ref=e725]:
+                  - generic [ref=e726]:
+                    - img [ref=e727]
+                    - heading "Belgium vs Romania" [level=3] [ref=e1431]
+                  - paragraph [ref=e730]: UEFA Euro · 2024
+                - generic [ref=e731]:
+                  - generic [ref=e732]: "2"
+                  - generic [ref=e733]: "-"
+                  - generic [ref=e734]: "0"
+                - generic [ref=e735]: 22 Jun 2024
+                - generic [ref=e736]:
+                  - button "Open" [ref=e737] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e738]
+                  - button "Analyze" [ref=e740] [cursor=pointer]:
+                    - img [ref=e741]
+                    - text: Analyze
+              - article [ref=e744]:
+                - generic [ref=e745]:
+                  - generic [ref=e746]:
+                    - img [ref=e747]
+                    - heading "Georgia vs Czech Republic" [level=3] [ref=e1432]
+                  - paragraph [ref=e750]: UEFA Euro · 2024
+                - generic [ref=e751]:
+                  - generic [ref=e752]: "1"
+                  - generic [ref=e753]: "-"
+                  - generic [ref=e754]: "1"
+                - generic [ref=e755]: 22 Jun 2024
+                - generic [ref=e756]:
+                  - button "Open" [ref=e757] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e758]
+                  - button "Analyze" [ref=e760] [cursor=pointer]:
+                    - img [ref=e761]
+                    - text: Analyze
+              - article [ref=e764]:
+                - generic [ref=e765]:
+                  - generic [ref=e766]:
+                    - img [ref=e767]
+                    - heading "Netherlands vs France" [level=3] [ref=e1433]
+                  - paragraph [ref=e770]: UEFA Euro · 2024
+                - generic [ref=e771]:
+                  - generic [ref=e772]: "0"
+                  - generic [ref=e773]: "-"
+                  - generic [ref=e774]: "0"
+                - generic [ref=e775]: 21 Jun 2024
+                - generic [ref=e776]:
+                  - button "Open" [ref=e777] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e778]
+                  - button "Analyze" [ref=e780] [cursor=pointer]:
+                    - img [ref=e781]
+                    - text: Analyze
+              - article [ref=e784]:
+                - generic [ref=e785]:
+                  - generic [ref=e786]:
+                    - img [ref=e787]
+                    - heading "Slovakia vs Ukraine" [level=3] [ref=e1434]
+                  - paragraph [ref=e790]: UEFA Euro · 2024
+                - generic [ref=e791]:
+                  - generic [ref=e792]: "1"
+                  - generic [ref=e793]: "-"
+                  - generic [ref=e794]: "2"
+                - generic [ref=e795]: 21 Jun 2024
+                - generic [ref=e796]:
+                  - button "Open" [ref=e797] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e798]
+                  - button "Analyze" [ref=e800] [cursor=pointer]:
+                    - img [ref=e801]
+                    - text: Analyze
+              - article [ref=e804]:
+                - generic [ref=e805]:
+                  - generic [ref=e806]:
+                    - img [ref=e807]
+                    - heading "Poland vs Austria" [level=3] [ref=e1435]
+                  - paragraph [ref=e810]: UEFA Euro · 2024
+                - generic [ref=e811]:
+                  - generic [ref=e812]: "1"
+                  - generic [ref=e813]: "-"
+                  - generic [ref=e814]: "3"
+                - generic [ref=e815]: 21 Jun 2024
+                - generic [ref=e816]:
+                  - button "Open" [ref=e817] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e818]
+                  - button "Analyze" [ref=e820] [cursor=pointer]:
+                    - img [ref=e821]
+                    - text: Analyze
+              - article [ref=e824]:
+                - generic [ref=e825]:
+                  - generic [ref=e826]:
+                    - img [ref=e827]
+                    - heading "Slovenia vs Serbia" [level=3] [ref=e1436]
+                  - paragraph [ref=e830]: UEFA Euro · 2024
+                - generic [ref=e831]:
+                  - generic [ref=e832]: "1"
+                  - generic [ref=e833]: "-"
+                  - generic [ref=e834]: "1"
+                - generic [ref=e835]: 20 Jun 2024
+                - generic [ref=e836]:
+                  - button "Open" [ref=e837] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e838]
+                  - button "Analyze" [ref=e840] [cursor=pointer]:
+                    - img [ref=e841]
+                    - text: Analyze
+              - article [ref=e844]:
+                - generic [ref=e845]:
+                  - generic [ref=e846]:
+                    - img [ref=e847]
+                    - heading "Denmark vs England" [level=3] [ref=e1437]
+                  - paragraph [ref=e850]: UEFA Euro · 2024
+                - generic [ref=e851]:
+                  - generic [ref=e852]: "1"
+                  - generic [ref=e853]: "-"
+                  - generic [ref=e854]: "1"
+                - generic [ref=e855]: 20 Jun 2024
+                - generic [ref=e856]:
+                  - button "Open" [ref=e857] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e858]
+                  - button "Analyze" [ref=e860] [cursor=pointer]:
+                    - img [ref=e861]
+                    - text: Analyze
+              - article [ref=e864]:
+                - generic [ref=e865]:
+                  - generic [ref=e866]:
+                    - img [ref=e867]
+                    - heading "Spain vs Italy" [level=3] [ref=e1438]
+                  - paragraph [ref=e870]: UEFA Euro · 2024
+                - generic [ref=e871]:
+                  - generic [ref=e872]: "1"
+                  - generic [ref=e873]: "-"
+                  - generic [ref=e874]: "0"
+                - generic [ref=e875]: 20 Jun 2024
+                - generic [ref=e876]:
+                  - button "Open" [ref=e877] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e878]
+                  - button "Analyze" [ref=e880] [cursor=pointer]:
+                    - img [ref=e881]
+                    - text: Analyze
+              - article [ref=e884]:
+                - generic [ref=e885]:
+                  - generic [ref=e886]:
+                    - img [ref=e887]
+                    - heading "Croatia vs Albania" [level=3] [ref=e1439]
+                  - paragraph [ref=e890]: UEFA Euro · 2024
+                - generic [ref=e891]:
+                  - generic [ref=e892]: "2"
+                  - generic [ref=e893]: "-"
+                  - generic [ref=e894]: "2"
+                - generic [ref=e895]: 19 Jun 2024
+                - generic [ref=e896]:
+                  - button "Open" [ref=e897] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e898]
+                  - button "Analyze" [ref=e900] [cursor=pointer]:
+                    - img [ref=e901]
+                    - text: Analyze
+              - article [ref=e904]:
+                - generic [ref=e905]:
+                  - generic [ref=e906]:
+                    - img [ref=e907]
+                    - heading "Germany vs Hungary" [level=3] [ref=e1440]
+                  - paragraph [ref=e910]: UEFA Euro · 2024
+                - generic [ref=e911]:
+                  - generic [ref=e912]: "2"
+                  - generic [ref=e913]: "-"
+                  - generic [ref=e914]: "0"
+                - generic [ref=e915]: 19 Jun 2024
+                - generic [ref=e916]:
+                  - button "Open" [ref=e917] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e918]
+                  - button "Analyze" [ref=e920] [cursor=pointer]:
+                    - img [ref=e921]
+                    - text: Analyze
+              - article [ref=e924]:
+                - generic [ref=e925]:
+                  - generic [ref=e926]:
+                    - img [ref=e927]
+                    - heading "Scotland vs Switzerland" [level=3] [ref=e1441]
+                  - paragraph [ref=e930]: UEFA Euro · 2024
+                - generic [ref=e931]:
+                  - generic [ref=e932]: "1"
+                  - generic [ref=e933]: "-"
+                  - generic [ref=e934]: "1"
+                - generic [ref=e935]: 19 Jun 2024
+                - generic [ref=e936]:
+                  - button "Open" [ref=e937] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e938]
+                  - button "Analyze" [ref=e940] [cursor=pointer]:
+                    - img [ref=e941]
+                    - text: Analyze
+              - article [ref=e944]:
+                - generic [ref=e945]:
+                  - generic [ref=e946]:
+                    - img [ref=e947]
+                    - heading "Portugal vs Czech Republic" [level=3] [ref=e1442]
+                  - paragraph [ref=e950]: UEFA Euro · 2024
+                - generic [ref=e951]:
+                  - generic [ref=e952]: "2"
+                  - generic [ref=e953]: "-"
+                  - generic [ref=e954]: "1"
+                - generic [ref=e955]: 18 Jun 2024
+                - generic [ref=e956]:
+                  - button "Open" [ref=e957] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e958]
+                  - button "Analyze" [ref=e960] [cursor=pointer]:
+                    - img [ref=e961]
+                    - text: Analyze
+              - article [ref=e964]:
+                - generic [ref=e965]:
+                  - generic [ref=e966]:
+                    - img [ref=e967]
+                    - heading "Turkey vs Georgia" [level=3] [ref=e1443]
+                  - paragraph [ref=e970]: UEFA Euro · 2024
+                - generic [ref=e971]:
+                  - generic [ref=e972]: "3"
+                  - generic [ref=e973]: "-"
+                  - generic [ref=e974]: "1"
+                - generic [ref=e975]: 18 Jun 2024
+                - generic [ref=e976]:
+                  - button "Open" [ref=e977] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e978]
+                  - button "Analyze" [ref=e980] [cursor=pointer]:
+                    - img [ref=e981]
+                    - text: Analyze
+              - article [ref=e984]:
+                - generic [ref=e985]:
+                  - generic [ref=e986]:
+                    - img [ref=e987]
+                    - heading "Belgium vs Slovakia" [level=3] [ref=e1444]
+                  - paragraph [ref=e990]: UEFA Euro · 2024
+                - generic [ref=e991]:
+                  - generic [ref=e992]: "0"
+                  - generic [ref=e993]: "-"
+                  - generic [ref=e994]: "1"
+                - generic [ref=e995]: 17 Jun 2024
+                - generic [ref=e996]:
+                  - button "Open" [ref=e997] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e998]
+                  - button "Analyze" [ref=e1000] [cursor=pointer]:
+                    - img [ref=e1001]
+                    - text: Analyze
+              - article [ref=e1004]:
+                - generic [ref=e1005]:
+                  - generic [ref=e1006]:
+                    - img [ref=e1007]
+                    - heading "Austria vs France" [level=3] [ref=e1445]
+                  - paragraph [ref=e1010]: UEFA Euro · 2024
+                - generic [ref=e1011]:
+                  - generic [ref=e1012]: "0"
+                  - generic [ref=e1013]: "-"
+                  - generic [ref=e1014]: "1"
+                - generic [ref=e1015]: 17 Jun 2024
+                - generic [ref=e1016]:
+                  - button "Open" [ref=e1017] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1018]
+                  - button "Analyze" [ref=e1020] [cursor=pointer]:
+                    - img [ref=e1021]
+                    - text: Analyze
+              - article [ref=e1024]:
+                - generic [ref=e1025]:
+                  - generic [ref=e1026]:
+                    - img [ref=e1027]
+                    - heading "Romania vs Ukraine" [level=3] [ref=e1446]
+                  - paragraph [ref=e1030]: UEFA Euro · 2024
+                - generic [ref=e1031]:
+                  - generic [ref=e1032]: "3"
+                  - generic [ref=e1033]: "-"
+                  - generic [ref=e1034]: "0"
+                - generic [ref=e1035]: 17 Jun 2024
+                - generic [ref=e1036]:
+                  - button "Open" [ref=e1037] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1038]
+                  - button "Analyze" [ref=e1040] [cursor=pointer]:
+                    - img [ref=e1041]
+                    - text: Analyze
+              - article [ref=e1044]:
+                - generic [ref=e1045]:
+                  - generic [ref=e1046]:
+                    - img [ref=e1047]
+                    - heading "Slovenia vs Denmark" [level=3] [ref=e1447]
+                  - paragraph [ref=e1050]: UEFA Euro · 2024
+                - generic [ref=e1051]:
+                  - generic [ref=e1052]: "1"
+                  - generic [ref=e1053]: "-"
+                  - generic [ref=e1054]: "1"
+                - generic [ref=e1055]: 16 Jun 2024
+                - generic [ref=e1056]:
+                  - button "Open" [ref=e1057] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1058]
+                  - button "Analyze" [ref=e1060] [cursor=pointer]:
+                    - img [ref=e1061]
+                    - text: Analyze
+              - article [ref=e1064]:
+                - generic [ref=e1065]:
+                  - generic [ref=e1066]:
+                    - img [ref=e1067]
+                    - heading "Serbia vs England" [level=3] [ref=e1448]
+                  - paragraph [ref=e1070]: UEFA Euro · 2024
+                - generic [ref=e1071]:
+                  - generic [ref=e1072]: "0"
+                  - generic [ref=e1073]: "-"
+                  - generic [ref=e1074]: "1"
+                - generic [ref=e1075]: 16 Jun 2024
+                - generic [ref=e1076]:
+                  - button "Open" [ref=e1077] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1078]
+                  - button "Analyze" [ref=e1080] [cursor=pointer]:
+                    - img [ref=e1081]
+                    - text: Analyze
+              - article [ref=e1084]:
+                - generic [ref=e1085]:
+                  - generic [ref=e1086]:
+                    - img [ref=e1087]
+                    - heading "Poland vs Netherlands" [level=3] [ref=e1449]
+                  - paragraph [ref=e1090]: UEFA Euro · 2024
+                - generic [ref=e1091]:
+                  - generic [ref=e1092]: "1"
+                  - generic [ref=e1093]: "-"
+                  - generic [ref=e1094]: "2"
+                - generic [ref=e1095]: 16 Jun 2024
+                - generic [ref=e1096]:
+                  - button "Open" [ref=e1097] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1098]
+                  - button "Analyze" [ref=e1100] [cursor=pointer]:
+                    - img [ref=e1101]
+                    - text: Analyze
+              - article [ref=e1104]:
+                - generic [ref=e1105]:
+                  - generic [ref=e1106]:
+                    - img [ref=e1107]
+                    - heading "Hungary vs Switzerland" [level=3] [ref=e1450]
+                  - paragraph [ref=e1110]: UEFA Euro · 2024
+                - generic [ref=e1111]:
+                  - generic [ref=e1112]: "1"
+                  - generic [ref=e1113]: "-"
+                  - generic [ref=e1114]: "3"
+                - generic [ref=e1115]: 15 Jun 2024
+                - generic [ref=e1116]:
+                  - button "Open" [ref=e1117] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1118]
+                  - button "Analyze" [ref=e1120] [cursor=pointer]:
+                    - img [ref=e1121]
+                    - text: Analyze
+              - article [ref=e1124]:
+                - generic [ref=e1125]:
+                  - generic [ref=e1126]:
+                    - img [ref=e1127]
+                    - heading "Spain vs Croatia" [level=3] [ref=e1451]
+                  - paragraph [ref=e1130]: UEFA Euro · 2024
+                - generic [ref=e1131]:
+                  - generic [ref=e1132]: "3"
+                  - generic [ref=e1133]: "-"
+                  - generic [ref=e1134]: "0"
+                - generic [ref=e1135]: 15 Jun 2024
+                - generic [ref=e1136]:
+                  - button "Open" [ref=e1137] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1138]
+                  - button "Analyze" [ref=e1140] [cursor=pointer]:
+                    - img [ref=e1141]
+                    - text: Analyze
+              - article [ref=e1144]:
+                - generic [ref=e1145]:
+                  - generic [ref=e1146]:
+                    - img [ref=e1147]
+                    - heading "Italy vs Albania" [level=3] [ref=e1452]
+                  - paragraph [ref=e1150]: UEFA Euro · 2024
+                - generic [ref=e1151]:
+                  - generic [ref=e1152]: "2"
+                  - generic [ref=e1153]: "-"
+                  - generic [ref=e1154]: "1"
+                - generic [ref=e1155]: 15 Jun 2024
+                - generic [ref=e1156]:
+                  - button "Open" [ref=e1157] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1158]
+                  - button "Analyze" [ref=e1160] [cursor=pointer]:
+                    - img [ref=e1161]
+                    - text: Analyze
+              - article [ref=e1164]:
+                - generic [ref=e1165]:
+                  - generic [ref=e1166]:
+                    - img [ref=e1167]
+                    - heading "Germany vs Scotland" [level=3] [ref=e1453]
+                  - paragraph [ref=e1170]: UEFA Euro · 2024
+                - generic [ref=e1171]:
+                  - generic [ref=e1172]: "5"
+                  - generic [ref=e1173]: "-"
+                  - generic [ref=e1174]: "1"
+                - generic [ref=e1175]: 14 Jun 2024
+                - generic [ref=e1176]:
+                  - button "Open" [ref=e1177] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1178]
+                  - button "Analyze" [ref=e1180] [cursor=pointer]:
+                    - img [ref=e1181]
+                    - text: Analyze
+              - article [ref=e1184]:
+                - generic [ref=e1185]:
+                  - generic [ref=e1186]:
+                    - img [ref=e1187]
+                    - heading "Argentina vs France" [level=3] [ref=e1454]
+                  - paragraph [ref=e1190]: FIFA World Cup · 2022
+                - generic [ref=e1191]:
+                  - generic [ref=e1192]: "3"
+                  - generic [ref=e1193]: "-"
+                  - generic [ref=e1194]: "3"
+                - generic [ref=e1195]: 18 Dec 2022
+                - generic [ref=e1196]:
+                  - button "Open" [ref=e1197] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1198]
+                  - button "Analyze" [ref=e1200] [cursor=pointer]:
+                    - img [ref=e1201]
+                    - text: Analyze
+              - article [ref=e1204]:
+                - generic [ref=e1205]:
+                  - generic [ref=e1206]:
+                    - img [ref=e1207]
+                    - heading "Croatia vs Morocco" [level=3] [ref=e1455]
+                  - paragraph [ref=e1210]: FIFA World Cup · 2022
+                - generic [ref=e1211]:
+                  - generic [ref=e1212]: "2"
+                  - generic [ref=e1213]: "-"
+                  - generic [ref=e1214]: "1"
+                - generic [ref=e1215]: 17 Dec 2022
+                - generic [ref=e1216]:
+                  - button "Open" [ref=e1217] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1218]
+                  - button "Analyze" [ref=e1220] [cursor=pointer]:
+                    - img [ref=e1221]
+                    - text: Analyze
+              - article [ref=e1224]:
+                - generic [ref=e1225]:
+                  - generic [ref=e1226]:
+                    - img [ref=e1227]
+                    - heading "France vs Morocco" [level=3] [ref=e1456]
+                  - paragraph [ref=e1230]: FIFA World Cup · 2022
+                - generic [ref=e1231]:
+                  - generic [ref=e1232]: "2"
+                  - generic [ref=e1233]: "-"
+                  - generic [ref=e1234]: "0"
+                - generic [ref=e1235]: 14 Dec 2022
+                - generic [ref=e1236]:
+                  - button "Open" [ref=e1237] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1238]
+                  - button "Analyze" [ref=e1240] [cursor=pointer]:
+                    - img [ref=e1241]
+                    - text: Analyze
+              - article [ref=e1244]:
+                - generic [ref=e1245]:
+                  - generic [ref=e1246]:
+                    - img [ref=e1247]
+                    - heading "Argentina vs Croatia" [level=3] [ref=e1457]
+                  - paragraph [ref=e1250]: FIFA World Cup · 2022
+                - generic [ref=e1251]:
+                  - generic [ref=e1252]: "3"
+                  - generic [ref=e1253]: "-"
+                  - generic [ref=e1254]: "0"
+                - generic [ref=e1255]: 13 Dec 2022
+                - generic [ref=e1256]:
+                  - button "Open" [ref=e1257] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1258]
+                  - button "Analyze" [ref=e1260] [cursor=pointer]:
+                    - img [ref=e1261]
+                    - text: Analyze
+              - article [ref=e1264]:
+                - generic [ref=e1265]:
+                  - generic [ref=e1266]:
+                    - img [ref=e1267]
+                    - heading "England vs France" [level=3] [ref=e1458]
+                  - paragraph [ref=e1270]: FIFA World Cup · 2022
+                - generic [ref=e1271]:
+                  - generic [ref=e1272]: "1"
+                  - generic [ref=e1273]: "-"
+                  - generic [ref=e1274]: "2"
+                - generic [ref=e1275]: 10 Dec 2022
+                - generic [ref=e1276]:
+                  - button "Open" [ref=e1277] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1278]
+                  - button "Analyze" [ref=e1280] [cursor=pointer]:
+                    - img [ref=e1281]
+                    - text: Analyze
+              - article [ref=e1284]:
+                - generic [ref=e1285]:
+                  - generic [ref=e1286]:
+                    - img [ref=e1287]
+                    - heading "Morocco vs Portugal" [level=3] [ref=e1459]
+                  - paragraph [ref=e1290]: FIFA World Cup · 2022
+                - generic [ref=e1291]:
+                  - generic [ref=e1292]: "1"
+                  - generic [ref=e1293]: "-"
+                  - generic [ref=e1294]: "0"
+                - generic [ref=e1295]: 10 Dec 2022
+                - generic [ref=e1296]:
+                  - button "Open" [ref=e1297] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1298]
+                  - button "Analyze" [ref=e1300] [cursor=pointer]:
+                    - img [ref=e1301]
+                    - text: Analyze
+              - article [ref=e1304]:
+                - generic [ref=e1305]:
+                  - generic [ref=e1306]:
+                    - img [ref=e1307]
+                    - heading "Netherlands vs Argentina" [level=3] [ref=e1460]
+                  - paragraph [ref=e1310]: FIFA World Cup · 2022
+                - generic [ref=e1311]:
+                  - generic [ref=e1312]: "2"
+                  - generic [ref=e1313]: "-"
+                  - generic [ref=e1314]: "2"
+                - generic [ref=e1315]: 09 Dec 2022
+                - generic [ref=e1316]:
+                  - button "Open" [ref=e1317] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1318]
+                  - button "Analyze" [ref=e1320] [cursor=pointer]:
+                    - img [ref=e1321]
+                    - text: Analyze
+              - article [ref=e1324]:
+                - generic [ref=e1325]:
+                  - generic [ref=e1326]:
+                    - img [ref=e1327]
+                    - heading "Croatia vs Brazil" [level=3] [ref=e1461]
+                  - paragraph [ref=e1330]: FIFA World Cup · 2022
+                - generic [ref=e1331]:
+                  - generic [ref=e1332]: "1"
+                  - generic [ref=e1333]: "-"
+                  - generic [ref=e1334]: "1"
+                - generic [ref=e1335]: 09 Dec 2022
+                - generic [ref=e1336]:
+                  - button "Open" [ref=e1337] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1338]
+                  - button "Analyze" [ref=e1340] [cursor=pointer]:
+                    - img [ref=e1341]
+                    - text: Analyze
+              - article [ref=e1344]:
+                - generic [ref=e1345]:
+                  - generic [ref=e1346]:
+                    - img [ref=e1347]
+                    - heading "Morocco vs Spain" [level=3] [ref=e1462]
+                  - paragraph [ref=e1350]: FIFA World Cup · 2022
+                - generic [ref=e1351]:
+                  - generic [ref=e1352]: "0"
+                  - generic [ref=e1353]: "-"
+                  - generic [ref=e1354]: "0"
+                - generic [ref=e1355]: 06 Dec 2022
+                - generic [ref=e1356]:
+                  - button "Open" [ref=e1357] [cursor=pointer]:
+                    - text: Open
+                    - img [ref=e1358]
+                  - button "Analyze" [ref=e1360] [cursor=pointer]:
+                    - img [ref=e1361]
+                    - text: Analyze
+              - button "Show 60 more matches" [ref=e1364] [cursor=pointer]
+  - generic [ref=e9]:
+    - img [ref=e11]
+    - button "Open Tanstack query devtools" [ref=e59] [cursor=pointer]:
+      - img [ref=e60]

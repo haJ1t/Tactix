@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { TeamAggregateAnalysis, TeamAnalysis } from '@/entities/analysis';
 import { aggregateTeamAnalysis } from '@/entities/analysis';
@@ -24,6 +25,10 @@ export interface TeamAnalysisResult {
     matches: Match[];
     aggregateAnalysis: TeamAggregateAnalysis;
     analyzedMatches: number;
+}
+
+interface TeamAnalysisOptions {
+    includeAnalysis?: boolean;
 }
 
 interface TeamSeasonsResult {
@@ -103,14 +108,29 @@ const buildTeamSeasonEntries = (
 };
 
 export const useTeams = (filters: TeamFilters = {}) =>
-    useQuery({
+    {
+        const query = useQuery({
         queryKey: queryKeys.teams(filters),
         queryFn: async (): Promise<TeamsCatalogResult> => {
             const [teamsData, matchesData] = await Promise.all([teamService.getTeams(), matchService.getMatches()]);
             const allTeams = buildTeamSeasonEntries(teamsData.teams || [], matchesData.matches || []);
-            const search = filters.search?.trim().toLowerCase() || '';
 
-            const filtered = allTeams.filter((team) => {
+            return {
+                teams: allTeams,
+                total: allTeams.length,
+                nationalCount: allTeams.filter((team) => team.segment === 'national').length,
+                clubCount: allTeams.filter((team) => team.segment === 'club').length,
+            };
+        },
+    });
+
+        const data = useMemo((): TeamsCatalogResult | undefined => {
+            if (!query.data) {
+                return undefined;
+            }
+
+            const search = filters.search?.trim().toLowerCase() || '';
+            const filtered = query.data.teams.filter((team) => {
                 const matchesSearch =
                     !search ||
                     team.team_name.toLowerCase().includes(search) ||
@@ -129,13 +149,16 @@ export const useTeams = (filters: TeamFilters = {}) =>
             });
 
             return {
+                ...query.data,
                 teams: filtered,
-                total: allTeams.length,
-                nationalCount: allTeams.filter((team) => team.segment === 'national').length,
-                clubCount: allTeams.filter((team) => team.segment === 'club').length,
             };
-        },
-    });
+        }, [filters.search, filters.segment, query.data]);
+
+        return {
+            ...query,
+            data,
+        };
+    };
 
 export const useTeamSeasons = (teamId: number | null) =>
     useQuery({
@@ -164,9 +187,16 @@ export const useTeam = (teamId: number | null, season: string | null) =>
         enabled: Boolean(teamId && season),
     });
 
-export const useTeamAnalysis = (teamId: number | null, season: string | null) =>
+export const useTeamAnalysis = (
+    teamId: number | null,
+    season: string | null,
+    options: TeamAnalysisOptions = {}
+) =>
     useQuery({
-        queryKey: teamId && season ? queryKeys.teamAnalysis(teamId, season) : ['team-analysis', 'empty'],
+        queryKey:
+            teamId && season
+                ? queryKeys.teamAnalysis(teamId, season, Boolean(options.includeAnalysis))
+                : ['team-analysis', 'empty'],
         queryFn: async (): Promise<TeamAnalysisResult> => {
             const [team, matchesData] = await Promise.all([
                 teamService.getTeam(teamId as number),
@@ -188,18 +218,22 @@ export const useTeamAnalysis = (teamId: number | null, season: string | null) =>
                 segment: isLikelyNationalTeam(team) ? 'national' : 'club',
             };
 
-            const settled = await Promise.allSettled(
-                matches.slice(0, 5).map((match) => matchService.analyzeMatchML(match.match_id, teamId as number))
-            );
+            let results: TeamAnalysis[] = [];
 
-            const results: TeamAnalysis[] = settled.flatMap((result) => {
-                if (result.status !== 'fulfilled') {
-                    return [];
-                }
+            if (options.includeAnalysis) {
+                const settled = await Promise.allSettled(
+                    matches.slice(0, 5).map((match) => matchService.analyzeMatchML(match.match_id, teamId as number))
+                );
 
-                const analysis = result.value.analysis?.[team.team_name];
-                return analysis ? [analysis] : [];
-            });
+                results = settled.flatMap((result) => {
+                    if (result.status !== 'fulfilled') {
+                        return [];
+                    }
+
+                    const analysis = result.value.analysis?.[team.team_name];
+                    return analysis ? [analysis] : [];
+                });
+            }
 
             return {
                 team: {

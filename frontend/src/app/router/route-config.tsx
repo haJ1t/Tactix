@@ -1,22 +1,31 @@
+import { Suspense, lazy, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
-import AppShell from '@/app/layouts/AppShell';
-import OverviewPage from '@/features/overview/pages/OverviewPage';
-import MatchesPage from '@/features/matches/pages/MatchesPage';
-import MatchWorkspacePage from '@/features/matches/pages/MatchWorkspacePage';
-import MatchOverviewTab from '@/features/analysis/components/MatchOverviewTab';
-import MatchNetworkTab from '@/features/analysis/components/MatchNetworkTab';
-import MatchPlayersTab from '@/features/analysis/components/MatchPlayersTab';
-import MatchTacticsTab from '@/features/analysis/components/MatchTacticsTab';
-import MatchShotsTab from '@/features/analysis/components/MatchShotsTab';
-import MatchReportTab from '@/features/analysis/components/MatchReportTab';
-import TeamsPage from '@/features/teams/pages/TeamsPage';
-import TeamDetailsPage from '@/features/teams/pages/TeamDetailsPage';
-import TeamOverviewTab from '@/features/teams/components/TeamOverviewTab';
-import TeamMatchesTab from '@/features/teams/components/TeamMatchesTab';
-import TeamPlayersTab from '@/features/teams/components/TeamPlayersTab';
-import TeamPatternsTab from '@/features/teams/components/TeamPatternsTab';
-import ReportsPage from '@/features/reports/pages/ReportsPage';
-import ReportDetailsPage from '@/features/reports/pages/ReportDetailsPage';
+import { LoadingState } from '@/shared/ui/LoadingState';
+
+const AppShell = lazy(() => import('@/app/layouts/AppShell'));
+const OverviewPage = lazy(() => import('@/features/overview/pages/OverviewPage'));
+const MatchesPage = lazy(() => import('@/features/matches/pages/MatchesPage'));
+const MatchWorkspacePage = lazy(() => import('@/features/matches/pages/MatchWorkspacePage'));
+const MatchOverviewTab = lazy(() => import('@/features/analysis/components/MatchOverviewTab'));
+const MatchNetworkTab = lazy(() => import('@/features/analysis/components/MatchNetworkTab'));
+const MatchPlayersTab = lazy(() => import('@/features/analysis/components/MatchPlayersTab'));
+const MatchTacticsTab = lazy(() => import('@/features/analysis/components/MatchTacticsTab'));
+const MatchShotsTab = lazy(() => import('@/features/analysis/components/MatchShotsTab'));
+const MatchReportTab = lazy(() => import('@/features/analysis/components/MatchReportTab'));
+const TeamsPage = lazy(() => import('@/features/teams/pages/TeamsPage'));
+const TeamDetailsPage = lazy(() => import('@/features/teams/pages/TeamDetailsPage'));
+const TeamOverviewTab = lazy(() => import('@/features/teams/components/TeamOverviewTab'));
+const TeamMatchesTab = lazy(() => import('@/features/teams/components/TeamMatchesTab'));
+const TeamPlayersTab = lazy(() => import('@/features/teams/components/TeamPlayersTab'));
+const TeamPatternsTab = lazy(() => import('@/features/teams/components/TeamPatternsTab'));
+const ReportsPage = lazy(() => import('@/features/reports/pages/ReportsPage'));
+const ReportDetailsPage = lazy(() => import('@/features/reports/pages/ReportDetailsPage'));
+
+const withSuspense = (element: ReactNode) => (
+    <Suspense fallback={<LoadingState title="Loading view" description="Preparing the next workspace." compact />}>
+        {element}
+    </Suspense>
+);
 
 function LegacyMatchRedirect() {
     const { matchId } = useParams<{ matchId: string }>();
@@ -37,30 +46,30 @@ export function AppRoutes() {
             <Route path="/analysis/:matchId" element={<LegacyAnalysisRedirect />} />
             <Route path="/metrics" element={<Navigate to="/matches" replace />} />
 
-            <Route element={<AppShell />}>
-                <Route path="/overview" element={<OverviewPage />} />
-                <Route path="/matches" element={<MatchesPage />} />
-                <Route path="/matches/:matchId" element={<MatchWorkspacePage />}>
+            <Route element={withSuspense(<AppShell />)}>
+                <Route path="/overview" element={withSuspense(<OverviewPage />)} />
+                <Route path="/matches" element={withSuspense(<MatchesPage />)} />
+                <Route path="/matches/:matchId" element={withSuspense(<MatchWorkspacePage />)}>
                     <Route index element={<Navigate to="overview" replace />} />
-                    <Route path="overview" element={<MatchOverviewTab />} />
-                    <Route path="network" element={<MatchNetworkTab />} />
-                    <Route path="players" element={<MatchPlayersTab />} />
-                    <Route path="tactics" element={<MatchTacticsTab />} />
-                    <Route path="shots" element={<MatchShotsTab />} />
-                    <Route path="report" element={<MatchReportTab />} />
+                    <Route path="overview" element={withSuspense(<MatchOverviewTab />)} />
+                    <Route path="network" element={withSuspense(<MatchNetworkTab />)} />
+                    <Route path="players" element={withSuspense(<MatchPlayersTab />)} />
+                    <Route path="tactics" element={withSuspense(<MatchTacticsTab />)} />
+                    <Route path="shots" element={withSuspense(<MatchShotsTab />)} />
+                    <Route path="report" element={withSuspense(<MatchReportTab />)} />
                 </Route>
 
-                <Route path="/teams" element={<TeamsPage />} />
-                <Route path="/teams/:teamId" element={<TeamDetailsPage />}>
+                <Route path="/teams" element={withSuspense(<TeamsPage />)} />
+                <Route path="/teams/:teamId" element={withSuspense(<TeamDetailsPage />)}>
                     <Route index element={<Navigate to="overview" replace />} />
-                    <Route path="overview" element={<TeamOverviewTab />} />
-                    <Route path="matches" element={<TeamMatchesTab />} />
-                    <Route path="players" element={<TeamPlayersTab />} />
-                    <Route path="patterns" element={<TeamPatternsTab />} />
+                    <Route path="overview" element={withSuspense(<TeamOverviewTab />)} />
+                    <Route path="matches" element={withSuspense(<TeamMatchesTab />)} />
+                    <Route path="players" element={withSuspense(<TeamPlayersTab />)} />
+                    <Route path="patterns" element={withSuspense(<TeamPatternsTab />)} />
                 </Route>
 
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/reports/:reportId" element={<ReportDetailsPage />} />
+                <Route path="/reports" element={withSuspense(<ReportsPage />)} />
+                <Route path="/reports/:reportId" element={withSuspense(<ReportDetailsPage />)} />
             </Route>
 
             <Route path="*" element={<Navigate to="/overview" replace />} />

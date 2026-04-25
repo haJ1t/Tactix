@@ -59,7 +59,7 @@ export default function MatchTacticsTab() {
                                         <AnimatedBar
                                             value={pattern.confidence_score}
                                             max={1}
-                                            color="rgb(99,102,241)"
+                                            color="var(--primary)"
                                         />
                                     </div>
                                 </StaggerItem>

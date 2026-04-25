@@ -1,14 +1,13 @@
 import { Link } from 'react-router-dom';
+import { ArrowRight, Crosshair, FileText, TrendingUp, Users } from 'lucide-react';
 import { useMatches } from '@/features/matches/hooks/useMatches';
-import { useTeams } from '@/features/teams/hooks/useTeams';
 import { useReports } from '@/features/reports/hooks/useReports';
-import { StatCard } from '@/shared/ui/StatCard';
-import { LoadingState } from '@/shared/ui/LoadingState';
-import { ErrorState } from '@/shared/ui/ErrorState';
+import { useTeams } from '@/features/teams/hooks/useTeams';
 import { formatDateTime, formatMatchDate } from '@/shared/lib/format';
-import { PageTransition, FadeInUp, StaggerContainer, StaggerItem, GlassCard, FloatingOrb, AnimatedCounter } from '@/shared/ui/motion';
-import { motion } from 'framer-motion';
-import { Crosshair, Users, FileText, TrendingUp, ArrowRight } from 'lucide-react';
+import { ErrorState } from '@/shared/ui/ErrorState';
+import { LoadingState } from '@/shared/ui/LoadingState';
+import { StatCard } from '@/shared/ui/StatCard';
+import { AnimatedCounter, FadeInUp, PageTransition, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 
 export default function OverviewPage() {
     const matchesQuery = useMatches();
@@ -16,14 +15,14 @@ export default function OverviewPage() {
     const reportsQuery = useReports();
 
     if (matchesQuery.isLoading || teamsQuery.isLoading) {
-        return <LoadingState title="Loading overview" description="Building the latest workspace summary." />;
+        return <LoadingState title="Loading overview" description="Preparing the analyst workspace summary." />;
     }
 
     if (matchesQuery.isError || teamsQuery.isError) {
         return (
             <ErrorState
                 title="Overview unavailable"
-                description="Core dashboard metrics could not be loaded."
+                description="Core match and team data could not be loaded."
                 onRetry={() => {
                     void matchesQuery.refetch();
                     void teamsQuery.refetch();
@@ -32,210 +31,201 @@ export default function OverviewPage() {
         );
     }
 
+    const matches = matchesQuery.data?.matches || [];
+    const latestMatch = matches[0] || null;
     const latestReport = reportsQuery.data?.[0] || null;
-    const recentReports = reportsQuery.data?.slice(0, 4) || [];
+    const recentReports = reportsQuery.data?.slice(0, 5) || [];
 
     return (
         <PageTransition>
-            <div className="space-y-8">
-                {/* Hero */}
-                <div className="relative overflow-hidden rounded-2xl p-8 lg:p-10" style={{ background: 'linear-gradient(135deg, #111118 0%, #0A0A0F 50%, #0D1A0F 100%)' }}>
-                    <FloatingOrb color="#22C55E" size={300} top="-10%" left="70%" />
-                    <FloatingOrb color="#3B82F6" size={200} top="60%" left="-5%" delay={2} />
-
-                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-                        <div className="space-y-4 max-w-xl">
-                            <motion.span
-                                className="inline-block text-xs font-semibold uppercase tracking-widest text-primary-400"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 }}
-                            >
-                                Analyst Overview
-                            </motion.span>
-                            <motion.h1
-                                className="text-3xl lg:text-4xl font-bold text-white text-glow"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                Your Tactical Command Center
-                            </motion.h1>
-                            <motion.p
-                                className="text-[#94A3B8] text-base leading-relaxed"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
-                            >
-                                Discover matches, analyze passing networks, and generate analyst reports from one unified workspace.
-                            </motion.p>
-                            <motion.div
-                                className="flex gap-3 pt-2"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 }}
-                            >
-                                <Link to="/matches" className="btn-glow inline-flex items-center gap-2 text-sm">
-                                    Browse Matches <ArrowRight size={16} />
-                                </Link>
-                                <Link to={latestReport ? `/reports/${latestReport.id}` : '/reports'} className="btn-ghost inline-flex items-center gap-2 text-sm">
-                                    {latestReport ? 'Latest Report' : 'Open Reports'}
-                                </Link>
-                            </motion.div>
+            <div className="space-y-6">
+                <section className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.8fr)]">
+                    <div className="glass-card overflow-hidden">
+                        <div className="border-b border-[var(--border-soft)] bg-[var(--surface-raised)] px-5 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--primary-strong)]">Analyst desk</p>
+                            <h1 className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">Today&apos;s tactical workspace</h1>
+                            <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">
+                                Pick up the latest match review, open the fixture catalog, or move into team-season analysis.
+                            </p>
                         </div>
 
-                        <motion.div
-                            className="glass-card p-6 min-w-[240px]"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.3 }}
-                        >
-                            <span className="text-[10px] font-semibold uppercase tracking-widest text-primary-400 block mb-4">Dataset</span>
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-baseline">
-                                    <span className="text-xs text-[#94A3B8]">Matches</span>
-                                    <span className="text-lg font-bold text-white"><AnimatedCounter value={matchesQuery.data?.total || 0} /></span>
-                                </div>
-                                <div className="flex justify-between items-baseline">
-                                    <span className="text-xs text-[#94A3B8]">Teams</span>
-                                    <span className="text-lg font-bold text-white"><AnimatedCounter value={teamsQuery.data?.total || 0} /></span>
-                                </div>
-                                <div className="flex justify-between items-baseline">
-                                    <span className="text-xs text-[#94A3B8]">Reports</span>
-                                    <span className="text-lg font-bold text-white"><AnimatedCounter value={reportsQuery.data?.length || 0} /></span>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                </div>
-
-                {/* Stat Cards */}
-                <FadeInUp>
-                    <StaggerContainer className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <StaggerItem>
-                            <StatCard label="Matches in library" value={matchesQuery.data?.total || 0} icon={<Crosshair size={16} />} tone="accent" />
-                        </StaggerItem>
-                        <StaggerItem>
-                            <StatCard label="Team seasons" value={teamsQuery.data?.total || 0} icon={<Users size={16} />} tone="success" />
-                        </StaggerItem>
-                        <StaggerItem>
-                            <StatCard label="Saved reports" value={reportsQuery.data?.length || 0} icon={<FileText size={16} />} tone="warning" />
-                        </StaggerItem>
-                        <StaggerItem>
-                            <StatCard
-                                label="Latest analyzed"
-                                value={latestReport ? `${latestReport.homeTeam} vs ${latestReport.awayTeam}` : 'None yet'}
-                                icon={<TrendingUp size={16} />}
-                            />
-                        </StaggerItem>
-                    </StaggerContainer>
-                </FadeInUp>
-
-                {/* Quick Actions */}
-                <FadeInUp delay={0.1}>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        <GlassCard className="p-6 group" onClick={() => {}} hover>
-                            <Link to="/matches" className="block space-y-3">
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-500/10 text-primary-400 group-hover:bg-primary-500/20 transition-colors">
-                                    <Crosshair size={20} />
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#94A3B8]">Browse</span>
-                                    <h3 className="text-base font-semibold text-white mt-0.5">Matches</h3>
-                                    <p className="text-sm text-[#94A3B8] mt-1">Open the fixture library and launch a workspace.</p>
-                                </div>
-                            </Link>
-                        </GlassCard>
-
-                        <GlassCard className="p-6 group" onClick={() => {}} hover>
-                            <Link to="/teams" className="block space-y-3">
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
-                                    <Users size={20} />
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#94A3B8]">Review</span>
-                                    <h3 className="text-base font-semibold text-white mt-0.5">Team Seasons</h3>
-                                    <p className="text-sm text-[#94A3B8] mt-1">Inspect season-scoped profiles and tactical DNA.</p>
-                                </div>
-                            </Link>
-                        </GlassCard>
-
-                        <GlassCard className="p-6 group" onClick={() => {}} hover>
-                            <Link to={latestReport ? `/reports/${latestReport.id}` : '/reports'} className="block space-y-3">
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20 transition-colors">
-                                    <FileText size={20} />
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#94A3B8]">Resume</span>
-                                    <h3 className="text-base font-semibold text-white mt-0.5">{latestReport ? 'Latest Report' : 'Reports'}</h3>
-                                    <p className="text-sm text-[#94A3B8] mt-1">{latestReport ? 'Jump back to the most recent saved analysis.' : 'Open the saved report library.'}</p>
-                                </div>
-                            </Link>
-                        </GlassCard>
-                    </div>
-                </FadeInUp>
-
-                {/* Latest Analysis */}
-                {latestReport && (
-                    <FadeInUp delay={0.15}>
-                        <GlassCard className="p-6" hover={false}>
-                            <div className="flex items-start justify-between mb-4">
-                                <div>
-                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-primary-400">Latest Analysis</span>
-                                    <h3 className="text-lg font-semibold text-white mt-1">{latestReport.homeTeam} vs {latestReport.awayTeam}</h3>
-                                </div>
-                                <span className="tag-glow">{latestReport.scoreline}</span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <span className="text-xs text-[#94A3B8] block">Competition</span>
-                                    <span className="text-sm font-medium text-white">{latestReport.competition}</span>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-[#94A3B8] block">Match date</span>
-                                    <span className="text-sm font-medium text-white">{formatMatchDate(latestReport.matchDate)}</span>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-[#94A3B8] block">Saved at</span>
-                                    <span className="text-sm font-medium text-white">{formatDateTime(latestReport.createdAt)}</span>
-                                </div>
-                            </div>
-                        </GlassCard>
-                    </FadeInUp>
-                )}
-
-                {/* Recent Reports */}
-                <FadeInUp delay={0.2}>
-                    <GlassCard className="p-6" hover={false}>
-                        <h3 className="text-sm font-semibold text-white mb-4">Recent Reports</h3>
-                        {recentReports.length > 0 ? (
-                            <StaggerContainer className="space-y-2" staggerDelay={0.05}>
-                                {recentReports.map((report, index) => (
-                                    <StaggerItem key={report.id}>
-                                        <Link
-                                            to={`/reports/${report.id}`}
-                                            className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-xs font-mono text-[#94A3B8] w-6">{String(index + 1).padStart(2, '0')}</span>
-                                                <div>
-                                                    <span className="text-sm font-medium text-white">{report.homeTeam} vs {report.awayTeam}</span>
-                                                    <p className="text-xs text-[#94A3B8] mt-0.5">{report.competition} · {formatMatchDate(report.matchDate)}</p>
-                                                </div>
+                        <div className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_220px]">
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                                    Latest match in library
+                                </p>
+                                {latestMatch ? (
+                                    <div className="mt-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-soft)] p-4">
+                                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-base font-semibold text-[var(--text-primary)]">
+                                                    {latestMatch.home_team?.team_name || 'Home'} vs {latestMatch.away_team?.team_name || 'Away'}
+                                                </p>
+                                                <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                                                    {latestMatch.competition || 'Competition unavailable'} · {latestMatch.season || 'Season n/a'} ·{' '}
+                                                    {formatMatchDate(latestMatch.match_date)}
+                                                </p>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="tag-glow text-[11px]">{report.scoreline}</span>
-                                                <span className="text-[11px] text-[#94A3B8]">{formatDateTime(report.createdAt)}</span>
+                                            <div className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 tabular-nums">
+                                                <span className="text-xl font-bold">{latestMatch.home_score}</span>
+                                                <span className="text-[var(--text-muted)]">-</span>
+                                                <span className="text-xl font-bold">{latestMatch.away_score}</span>
                                             </div>
-                                        </Link>
-                                    </StaggerItem>
-                                ))}
-                            </StaggerContainer>
+                                        </div>
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            <Link className="btn-glow" to={`/matches/${latestMatch.match_id}/overview`}>
+                                                Open workspace <ArrowRight size={15} />
+                                            </Link>
+                                            <Link className="btn-ghost" to={`/matches/${latestMatch.match_id}/overview?run=1`}>
+                                                Run analysis
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-3 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--text-secondary)]">
+                                        No matches are available yet.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="rounded-lg border border-[rgba(79,143,101,0.2)] bg-[var(--primary-soft)] p-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--primary-strong)]">Library</p>
+                                <div className="mt-4 space-y-3">
+                                    <div className="flex items-baseline justify-between">
+                                        <span className="text-sm text-[var(--text-secondary)]">Matches</span>
+                                        <strong className="text-xl tabular-nums"><AnimatedCounter value={matchesQuery.data?.total || 0} /></strong>
+                                    </div>
+                                    <div className="flex items-baseline justify-between">
+                                        <span className="text-sm text-[var(--text-secondary)]">Team seasons</span>
+                                        <strong className="text-xl tabular-nums"><AnimatedCounter value={teamsQuery.data?.total || 0} /></strong>
+                                    </div>
+                                    <div className="flex items-baseline justify-between">
+                                        <span className="text-sm text-[var(--text-secondary)]">Reports</span>
+                                        <strong className="text-xl tabular-nums"><AnimatedCounter value={reportsQuery.data?.length || 0} /></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--text-muted)]">Latest report</p>
+                        {latestReport ? (
+                            <div className="mt-3 space-y-4">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                                        {latestReport.homeTeam} vs {latestReport.awayTeam}
+                                    </h2>
+                                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                                        {latestReport.competition} · {formatMatchDate(latestReport.matchDate)}
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <span className="tag-glow">{latestReport.scoreline}</span>
+                                    <span className="tag-blue">{formatDateTime(latestReport.createdAt)}</span>
+                                </div>
+                                <Link className="btn-ghost w-full" to={`/reports/${latestReport.id}`}>
+                                    Review dossier <ArrowRight size={15} />
+                                </Link>
+                            </div>
                         ) : (
-                            <p className="text-sm text-[#94A3B8]">Saved reports will appear here once created.</p>
+                            <div className="mt-3 space-y-4">
+                                <p className="text-sm text-[var(--text-secondary)]">
+                                    Generated match dossiers will appear here once reports are created.
+                                </p>
+                                <Link className="btn-ghost w-full" to="/reports">Open reports</Link>
+                            </div>
                         )}
-                    </GlassCard>
+                        {reportsQuery.isError && (
+                            <p className="mt-4 rounded-md border border-[rgba(184,135,53,0.25)] bg-[var(--amber-soft)] px-3 py-2 text-xs text-[var(--amber)]">
+                                Report history could not be refreshed. Match and team summaries remain available.
+                            </p>
+                        )}
+                    </div>
+                </section>
+
+                <FadeInUp>
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        <StatCard label="Matches" value={matchesQuery.data?.total || 0} icon={<Crosshair size={16} />} tone="success" />
+                        <StatCard label="Team seasons" value={teamsQuery.data?.total || 0} icon={<Users size={16} />} tone="accent" />
+                        <StatCard label="Saved reports" value={reportsQuery.data?.length || 0} icon={<FileText size={16} />} tone="warning" />
+                        <StatCard
+                            label="Latest analyzed"
+                            value={latestReport ? latestReport.scoreline : 'None'}
+                            icon={<TrendingUp size={16} />}
+                        />
+                    </div>
                 </FadeInUp>
+
+                <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                    <FadeInUp delay={0.05} className="min-w-0">
+                        <div className="glass-card p-5">
+                            <h2 className="text-base font-semibold text-[var(--text-primary)]">Workflow shortcuts</h2>
+                            <div className="mt-4 grid gap-2">
+                                {[
+                                    { label: 'Open Match Library', desc: 'Browse fixtures and start a match workspace.', to: '/matches', icon: Crosshair },
+                                    { label: 'Review Teams', desc: 'Inspect season-scoped team profiles.', to: '/teams', icon: Users },
+                                    { label: 'Open Reports', desc: 'Generate or review analyst dossiers.', to: '/reports', icon: FileText },
+                                ].map((item) => (
+                                    <Link
+                                        key={item.to}
+                                        to={item.to}
+                                        className="group flex min-w-0 items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-3 transition-colors hover:border-[rgba(79,143,101,0.28)] hover:bg-[var(--surface-soft)]"
+                                    >
+                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--primary-soft)] text-[var(--primary-strong)]">
+                                            <item.icon size={17} />
+                                        </span>
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{item.label}</span>
+                                            <span className="block truncate text-xs text-[var(--text-secondary)]">{item.desc}</span>
+                                        </span>
+                                        <ArrowRight size={15} className="text-[var(--text-muted)] group-hover:text-[var(--primary-strong)]" />
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </FadeInUp>
+
+                    <FadeInUp delay={0.1} className="min-w-0">
+                        <div className="glass-card p-5">
+                            <div className="flex items-center justify-between gap-3">
+                                <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent reports</h2>
+                                <Link className="text-sm font-semibold text-[var(--primary-strong)] hover:underline" to="/reports">
+                                    View all
+                                </Link>
+                            </div>
+                            {recentReports.length > 0 ? (
+                                <StaggerContainer className="mt-4 divide-y divide-[var(--border-soft)]" staggerDelay={0.04}>
+                                    {recentReports.map((report) => (
+                                        <StaggerItem key={report.id}>
+                                            <Link
+                                                to={`/reports/${report.id}`}
+                                                className="flex min-w-0 items-center justify-between gap-3 py-3"
+                                            >
+                                                <span className="min-w-0">
+                                                    <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">
+                                                        {report.homeTeam} vs {report.awayTeam}
+                                                    </span>
+                                                    <span className="block truncate text-xs text-[var(--text-secondary)]">
+                                                        {report.competition} · {formatMatchDate(report.matchDate)}
+                                                    </span>
+                                                </span>
+                                                <span className="flex shrink-0 items-center gap-2">
+                                                    <span className="tag-glow">{report.scoreline}</span>
+                                                    <ArrowRight size={14} className="text-[var(--text-muted)]" />
+                                                </span>
+                                            </Link>
+                                        </StaggerItem>
+                                    ))}
+                                </StaggerContainer>
+                            ) : (
+                                <p className="mt-4 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--text-secondary)]">
+                                    No reports have been saved yet.
+                                </p>
+                            )}
+                        </div>
+                    </FadeInUp>
+                </section>
             </div>
         </PageTransition>
     );

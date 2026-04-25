@@ -286,14 +286,19 @@ class VAEPModel:
         }, path)
 
     def load_model(self, path: str):
-        """Load trained models."""
-        if os.path.exists(path):
-            try:
-                data = joblib.load(path)
-                self.scoring_model = data['scoring_model']
-                self.conceding_model = data['conceding_model']
-                self.feature_columns = data['feature_columns']
-                self.is_trained = data['is_trained']
-            except Exception as e:
-                self.is_trained = False
-                print(f"Warning: Failed to load VAEP model from {path}: {e}")
+        """Load trained models with integrity verification."""
+        from utils.security import secure_joblib_load
+
+        data = secure_joblib_load(path, joblib.load)
+        if data is None:
+            self.is_trained = False
+            return
+
+        try:
+            self.scoring_model = data['scoring_model']
+            self.conceding_model = data['conceding_model']
+            self.feature_columns = data['feature_columns']
+            self.is_trained = data['is_trained']
+        except Exception as e:
+            self.is_trained = False
+            print(f"Warning: Failed to load VAEP model from {path}: {e}")

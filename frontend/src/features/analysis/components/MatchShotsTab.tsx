@@ -94,16 +94,16 @@ export default function MatchShotsTab() {
                             <div className="flex items-center gap-3">
                                 <span className="text-xs text-white font-medium w-28 truncate">{match.home_team?.team_name || 'Home'}</span>
                                 <div className="flex-1">
-                                    <AnimatedBar value={homeStats.xgTotal} max={maxXg} color="rgb(99,102,241)" />
+                                    <AnimatedBar value={homeStats.xgTotal} max={maxXg} color="var(--home)" />
                                 </div>
                                 <span className="text-xs text-primary-400 font-medium w-10 text-right">{homeStats.xgTotal.toFixed(2)}</span>
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="text-xs text-white font-medium w-28 truncate">{match.away_team?.team_name || 'Away'}</span>
                                 <div className="flex-1">
-                                    <AnimatedBar value={awayStats.xgTotal} max={maxXg} color="rgb(168,85,247)" />
+                                    <AnimatedBar value={awayStats.xgTotal} max={maxXg} color="var(--away)" />
                                 </div>
-                                <span className="text-xs text-purple-400 font-medium w-10 text-right">{awayStats.xgTotal.toFixed(2)}</span>
+                                <span className="text-xs text-[var(--away)] font-medium w-10 text-right">{awayStats.xgTotal.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
@@ -112,7 +112,7 @@ export default function MatchShotsTab() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[
                             { name: match.home_team?.team_name || 'Home', stats: homeStats, accent: 'border-primary-500/10' },
-                            { name: match.away_team?.team_name || 'Away', stats: awayStats, accent: 'border-purple-500/10' },
+                            { name: match.away_team?.team_name || 'Away', stats: awayStats, accent: 'border-[rgba(66,111,143,0.18)]' },
                         ].map((team) => (
                             <GlassCard key={team.name} className={`p-4 ${team.accent}`} hover={false}>
                                 <h4 className="text-sm font-semibold text-white mb-3">{team.name}</h4>

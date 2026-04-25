@@ -5,7 +5,9 @@ Parses StatsBomb open data format to extract matches, events, and lineups.
 """
 import json
 import os
+import re
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import math
 
@@ -20,39 +22,52 @@ class StatsBombParser:
         Args:
             data_dir: Path to StatsBomb data directory
         """
-        self.data_dir = data_dir
+        self.data_dir = Path(data_dir).resolve()
+
+    @staticmethod
+    def _sanitize_id(value) -> str:
+        """Remove path traversal characters from an identifier."""
+        return re.sub(r'[^a-zA-Z0-9_-]', '', str(value))
+
+    def _safe_path(self, *parts) -> Path:
+        """Build a path and ensure it stays within data_dir."""
+        target = self.data_dir.joinpath(*parts)
+        try:
+            target.resolve().relative_to(self.data_dir)
+        except ValueError:
+            raise ValueError(f"Path traversal detected: {target}")
+        return target
         
     def parse_competitions(self) -> List[Dict]:
         """Parse competitions.json file."""
-        filepath = os.path.join(self.data_dir, 'competitions.json')
-        if not os.path.exists(filepath):
+        filepath = self._safe_path('competitions.json')
+        if not filepath.exists():
             return []
-        
+
         with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f)
     
     def parse_matches(self, competition_id: int, season_id: int) -> List[Dict]:
         """
         Parse matches for a specific competition and season.
-        
+
         Args:
             competition_id: StatsBomb competition ID
             season_id: StatsBomb season ID
-            
+
         Returns:
             List of match dictionaries
         """
-        filepath = os.path.join(
-            self.data_dir, 'matches', 
-            str(competition_id), f'{season_id}.json'
-        )
-        
-        if not os.path.exists(filepath):
+        safe_comp = self._sanitize_id(competition_id)
+        safe_season = self._sanitize_id(season_id)
+        filepath = self._safe_path('matches', safe_comp, f'{safe_season}.json')
+
+        if not filepath.exists():
             return []
-        
+
         with open(filepath, 'r', encoding='utf-8') as f:
             matches = json.load(f)
-        
+
         return [self._transform_match(m) for m in matches]
     
     def _transform_match(self, match: Dict) -> Dict:
@@ -73,21 +88,22 @@ class StatsBombParser:
     def parse_events(self, match_id: int) -> List[Dict]:
         """
         Parse events for a specific match.
-        
+
         Args:
             match_id: Match ID
-            
+
         Returns:
             List of event dictionaries
         """
-        filepath = os.path.join(self.data_dir, 'events', f'{match_id}.json')
-        
-        if not os.path.exists(filepath):
+        safe_match = self._sanitize_id(match_id)
+        filepath = self._safe_path('events', f'{safe_match}.json')
+
+        if not filepath.exists():
             return []
-        
+
         with open(filepath, 'r', encoding='utf-8') as f:
             events = json.load(f)
-        
+
         return [self._transform_event(e) for e in events]
     
     def _transform_event(self, event: Dict) -> Dict:
@@ -150,18 +166,19 @@ class StatsBombParser:
     def parse_lineups(self, match_id: int) -> Dict[int, List[Dict]]:
         """
         Parse lineups for a specific match.
-        
+
         Args:
             match_id: Match ID
-            
+
         Returns:
             Dictionary mapping team_id to list of players
         """
-        filepath = os.path.join(self.data_dir, 'lineups', f'{match_id}.json')
-        
-        if not os.path.exists(filepath):
+        safe_match = self._sanitize_id(match_id)
+        filepath = self._safe_path('lineups', f'{safe_match}.json')
+
+        if not filepath.exists():
             return {}
-        
+
         with open(filepath, 'r', encoding='utf-8') as f:
             lineups = json.load(f)
         

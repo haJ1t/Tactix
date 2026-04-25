@@ -200,7 +200,7 @@ describe('Teams season scoping', () => {
         expect(screen.getByText('6 season entries')).toBeInTheDocument();
     });
 
-    it('redirects to the latest season when no season query is provided and analyzes only that season', async () => {
+    it('redirects to the latest season when no season query is provided and waits for manual analysis', async () => {
         renderTeamWorkspace('/teams/10/overview');
 
         await waitFor(() =>
@@ -209,6 +209,12 @@ describe('Teams season scoping', () => {
 
         await waitFor(() => expect(screen.getByText('Season')).toBeInTheDocument());
         expect(screen.getAllByText('2024/25').length).toBeGreaterThan(0);
+        expect(screen.getByText('Sample ML Analysis Is Manual')).toBeInTheDocument();
+        expect(analyzeMatchML).not.toHaveBeenCalled();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Run Sample Analysis' }));
+
+        await waitFor(() => expect(analyzeMatchML).toHaveBeenCalledTimes(1));
         expect(analyzeMatchML).toHaveBeenCalledTimes(1);
         expect(analyzeMatchML).toHaveBeenCalledWith(2, 10);
     });
@@ -226,6 +232,6 @@ describe('Teams season scoping', () => {
             expect(decodeURIComponent(screen.getByTestId('location').textContent || '')).toBe('/teams/10/matches?season=2023/24')
         );
         expect(screen.getByText('2023/24 · 1 matches')).toBeInTheDocument();
-        expect(analyzeMatchML).toHaveBeenCalledWith(1, 10);
+        expect(analyzeMatchML).not.toHaveBeenCalled();
     });
 });
