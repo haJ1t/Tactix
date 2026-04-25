@@ -71,5 +71,8 @@ statsbomb_data/
 *.swp
 *.swo
 
+# Frontend shared lib (negate the general lib/ ignore)
+!frontend/src/shared/lib/
+
 # Project Specific
 backend/instance/
