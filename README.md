@@ -80,6 +80,50 @@ backend/venv/bin/python scripts/download_statsbomb_data.py
 backend/venv/bin/python scripts/load_sample_data.py
 ```
 
+## Loading Match Data
+
+Tactix reads match data from the local SQLite database at `database/pass_network.db`. If you want to add or refresh fixtures, load StatsBomb data into that database first and then restart the backend if it is already running.
+
+### Download the raw StatsBomb data
+
+If `data/raw` is missing or incomplete, download the open-data source first:
+
+```bash
+backend/venv/bin/python scripts/download_statsbomb_data.py
+```
+
+### List available competitions and seasons
+
+Use the bundled helper to see the competition and season IDs available in the dataset:
+
+```bash
+backend/venv/bin/python scripts/load_sample_data.py --list
+```
+
+### Load one match
+
+Load a specific match by competition, season, and match index:
+
+```bash
+backend/venv/bin/python scripts/load_sample_data.py --competition 11 --season 90 --match 0
+```
+
+### Load a full season
+
+To batch-load every match for a competition and season, use the full-season loader:
+
+```bash
+backend/venv/bin/python scripts/load_full_season.py --competition 55 --season 282
+```
+
+### Verify the database
+
+After loading data, check the counts to confirm the database updated correctly:
+
+```bash
+backend/venv/bin/python scripts/check_data_status.py
+```
+
 ## Running the Application
 
 ### Option A: Start both services together
