@@ -67,13 +67,15 @@ This submission snapshot includes a populated local database:
 - 2,362,742 events
 - 624,859 passes
 
+If the database is missing on the marking machine, rebuild it by downloading StatsBomb Open Data with internet access and then loading the data into the local SQLite database.
+
 You can check the local data status with:
 
 ```bash
 backend/venv/bin/python scripts/check_data_status.py
 ```
 
-If you start from an empty database, download and load StatsBomb data:
+If you start from an empty database, download and load StatsBomb data. The download step requires internet access because it clones the public StatsBomb Open Data repository from GitHub:
 
 ```bash
 backend/venv/bin/python scripts/download_statsbomb_data.py
@@ -82,15 +84,19 @@ backend/venv/bin/python scripts/load_sample_data.py
 
 ## Loading Match Data
 
-Tactix reads match data from the local SQLite database at `database/pass_network.db`. If you want to add or refresh fixtures, load StatsBomb data into that database first and then restart the backend if it is already running.
+Tactix does not have an in-app upload flow. Match data is loaded offline into the local SQLite database at `database/pass_network.db`, and the frontend reads from that database through the Flask API.
+
+If you are working from a clean clone or the database is missing, use the internet-based download steps below to pull StatsBomb Open Data from `https://github.com/statsbomb/open-data.git`, then load the match data and restart the backend if it is already running.
 
 ### Download the raw StatsBomb data
 
-If `data/raw` is missing or incomplete, download the open-data source first:
+If `data/raw` is missing or incomplete, download the open-data source first. This command needs outbound internet access:
 
 ```bash
 backend/venv/bin/python scripts/download_statsbomb_data.py
 ```
+
+The script clones the StatsBomb repository into `data/raw/open-data` and copies the competition, match, event, and lineup files into `data/raw`.
 
 ### List available competitions and seasons
 
