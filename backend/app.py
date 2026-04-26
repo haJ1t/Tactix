@@ -1,6 +1,7 @@
 """
 Main Flask Application
 """
+import re
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -27,22 +28,25 @@ def create_app(config_name: str = 'production'):
     # Load configuration
     app.config.from_object(app_config.get(config_name, app_config['default']))
 
-    # Enable CORS — restricted to known frontend origins only
+    # Enable CORS — accepts localhost dev, all *.vercel.app deployments, and optional custom FRONTEND_URL
     frontend_url = os.environ.get('FRONTEND_URL', '').strip()
-    origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
-    if frontend_url and frontend_url != '*':
-        origins.append(frontend_url)
-    elif not frontend_url:
-        origins.append('*')
+
+    if frontend_url == '*':
+        cors_origins = "*"
+    else:
+        cors_origins = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            re.compile(r"^https://.*\.vercel\.app$"),
+        ]
+        if frontend_url:
+            cors_origins.append(frontend_url)
 
     CORS(
         app,
         resources={
             r"/api/*": {
-                "origins": origins
+                "origins": cors_origins
             }
         },
     )
