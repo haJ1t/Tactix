@@ -76,3 +76,6 @@ statsbomb_data/
 # Project Specific
 backend/instance/
 database/*.db.backup
+
+# Browser test artifacts
+.playwright-cli/
