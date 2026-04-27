@@ -79,3 +79,6 @@ database/*.db.backup
 
 # Browser test artifacts
 .playwright-cli/
+
+# Local audit notes
+SECURITY_AUDIT_REPORT.md
