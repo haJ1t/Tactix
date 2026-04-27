@@ -7,6 +7,7 @@ import { GlassCard, FadeInUp, AnimatedBar, StaggerContainer, StaggerItem, Shimme
 export default function MatchTacticsTab() {
     const { currentAnalysis, currentTeamName, runAnalysis, isRunningAnalysis } = useMatchWorkspaceContext();
 
+    // Empty state branch
     if (!currentAnalysis || !currentTeamName) {
         return (
             <EmptyState
@@ -21,6 +22,7 @@ export default function MatchTacticsTab() {
         );
     }
 
+    // Top patterns and tactic suggestions
     const patterns = getTopPatterns(currentAnalysis, 6);
     const tactics = getTopTactics(currentAnalysis, 6);
 

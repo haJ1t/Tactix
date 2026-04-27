@@ -1,8 +1,10 @@
 import type { Match } from '@/entities/match';
 import type { TeamAnalysis } from '@/entities/analysis';
 
+// LocalStorage key for reports
 export const REPORTS_STORAGE_KEY = 'tactix_reports_v1';
 
+// Saved report shape
 export interface StoredReport {
     id: string;
     matchId: number;
@@ -18,8 +20,10 @@ export interface StoredReport {
     awayAnalysis: TeamAnalysis | null;
 }
 
+// Guard against SSR access
 const isBrowser = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
+// Load reports from storage
 export const readStoredReports = (): StoredReport[] => {
     if (!isBrowser()) {
         return [];
@@ -39,6 +43,7 @@ export const readStoredReports = (): StoredReport[] => {
     }
 };
 
+// Persist reports to storage
 export const writeStoredReports = (reports: StoredReport[]) => {
     if (!isBrowser()) {
         return;
@@ -47,6 +52,7 @@ export const writeStoredReports = (reports: StoredReport[]) => {
     window.localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
 };
 
+// Build new report record
 export const createStoredReport = ({
     match,
     homeAnalysis,
@@ -70,6 +76,7 @@ export const createStoredReport = ({
     awayAnalysis,
 });
 
+// Save and prepend new report
 export const saveStoredReport = (report: StoredReport) => {
     const reports = readStoredReports();
     const next = [report, ...reports];
@@ -77,11 +84,13 @@ export const saveStoredReport = (report: StoredReport) => {
     return next;
 };
 
+// Remove report by id
 export const deleteStoredReport = (reportId: string) => {
     const next = readStoredReports().filter((report) => report.id !== reportId);
     writeStoredReports(next);
     return next;
 };
 
+// Find single report by id
 export const getStoredReport = (reportId: string) =>
     readStoredReports().find((report) => report.id === reportId) || null;

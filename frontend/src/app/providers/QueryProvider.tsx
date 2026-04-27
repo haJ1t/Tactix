@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense, type PropsWithChildren } from 'react';
 
+// Lazy load devtools in dev only
 const QueryDevtools = import.meta.env.DEV && import.meta.env.VITE_ENABLE_QUERY_DEVTOOLS === 'true'
     ? lazy(() => import('@tanstack/react-query-devtools').then((module) => ({ default: module.ReactQueryDevtools })))
     : null;
 
+// Configure react query client
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {

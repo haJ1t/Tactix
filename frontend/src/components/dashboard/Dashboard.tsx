@@ -4,14 +4,17 @@ import { matchService } from '../../services/matchService';
 import type { Match } from '../../types';
 
 export default function Dashboard() {
+    // Component state
     const [matches, setMatches] = useState<Match[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch matches on mount
     useEffect(() => {
         loadMatches();
     }, []);
 
+    // Load match list from API
     const loadMatches = async () => {
         try {
             setLoading(true);
@@ -25,6 +28,7 @@ export default function Dashboard() {
         }
     };
 
+    // Show loading spinner
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-4rem)]">

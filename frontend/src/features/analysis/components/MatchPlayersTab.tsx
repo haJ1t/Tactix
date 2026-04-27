@@ -11,6 +11,7 @@ const rankColors = ['text-[var(--amber)]', 'text-[var(--tactical-blue)]', 'text-
 export default function MatchPlayersTab() {
     const { currentAnalysis, currentTeamName, runAnalysis, isRunningAnalysis } = useMatchWorkspaceContext();
 
+    // Empty state branch
     if (!currentAnalysis || !currentTeamName) {
         return (
             <EmptyState
@@ -25,6 +26,7 @@ export default function MatchPlayersTab() {
         );
     }
 
+    // Top ten and podium leaders
     const players = getTopPlayers(currentAnalysis, currentTeamName, 10);
     const leaders = players.slice(0, 3);
     const maxImpact = leaders[0]?.impactScore || 1;

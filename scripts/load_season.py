@@ -17,16 +17,16 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'data', 'raw')
 def load_season(competition_id, season_id):
     """Load all matches for a specific competition and season."""
     print(f"Starting batch load for Competition {competition_id}, Season {season_id}...")
-    
-    # Initialize DB once
+
+    # Setup DB once
     init_db()
-    
-    # Parser to get match list
+
+    # Discover season matches
     parser = StatsBombParser(DATA_DIR)
     matches = parser.parse_matches(competition_id, season_id)
-    
+
+    # Try fallback path
     if not matches:
-        # Try open-data subdirectory
         alt_data_dir = os.path.join(DATA_DIR, 'open-data', 'data')
         if os.path.exists(alt_data_dir):
             parser = StatsBombParser(alt_data_dir)
@@ -42,6 +42,7 @@ def load_season(competition_id, season_id):
     failed_loads = 0
     skipped_loads = 0
     
+    # Pre-fetch existing IDs
     db = SessionLocal()
     existing_match_ids = {m[0] for m in db.query(Match.match_id).all()}
     db.close()

@@ -187,6 +187,7 @@ class VAEPModel:
         if 'match_id' not in actions_df.columns:
             raise ValueError('actions_df must contain match_id for grouped VAEP training')
 
+        # Group split by match
         match_ids = pd.Index(actions_df['match_id']).unique().tolist()
         rng = np.random.default_rng(42)
         rng.shuffle(match_ids)
@@ -194,6 +195,7 @@ class VAEPModel:
         train_matches = set(match_ids[:split_index])
         test_matches = set(match_ids[split_index:]) or train_matches
 
+        # Build train/test masks
         train_mask = actions_df['match_id'].isin(train_matches).values
         test_mask = actions_df['match_id'].isin(test_matches).values
 

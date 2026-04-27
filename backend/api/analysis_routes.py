@@ -50,11 +50,13 @@ def get_match_metrics(match_id: int):
     try:
         team_id = request.args.get('team_id', type=int)
 
+        # Build base metrics query
         query = db.query(NetworkMetrics).filter(NetworkMetrics.match_id == match_id)
 
         if team_id:
             query = query.filter(NetworkMetrics.team_id == team_id)
 
+        # Eager load related player
         metrics = query.options(joinedload(NetworkMetrics.player)).all()
 
         return jsonify({
@@ -83,6 +85,7 @@ def get_patterns(match_id: int):
         if team_id:
             query = query.filter(TacticalPattern.team_id == team_id)
 
+        # Sort by highest confidence
         patterns = query.order_by(TacticalPattern.confidence_score.desc()).all()
 
         return jsonify({

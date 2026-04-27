@@ -10,14 +10,17 @@ import { StatCard } from '@/shared/ui/StatCard';
 import { AnimatedCounter, FadeInUp, PageTransition, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 
 export default function OverviewPage() {
+    // Pull data from each domain
     const matchesQuery = useMatches();
     const teamsQuery = useTeams();
     const reportsQuery = useReports();
 
+    // Loading branch
     if (matchesQuery.isLoading || teamsQuery.isLoading) {
         return <LoadingState title="Loading overview" description="Preparing the analyst workspace summary." />;
     }
 
+    // Error branch
     if (matchesQuery.isError || teamsQuery.isError) {
         return (
             <ErrorState
@@ -31,6 +34,7 @@ export default function OverviewPage() {
         );
     }
 
+    // Pick highlights for the page
     const matches = matchesQuery.data?.matches || [];
     const latestMatch = matches[0] || null;
     const latestReport = reportsQuery.data?.[0] || null;

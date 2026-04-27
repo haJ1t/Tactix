@@ -28,10 +28,11 @@ def require_api_key(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         expected_key = current_app.config.get("TACTIX_API_KEY")
-        # If no API key is configured, skip authentication (local dev fallback)
+        # Skip auth for local dev
         if not expected_key:
             return func(*args, **kwargs)
 
+        # Validate request header
         provided_key = request.headers.get("X-API-Key")
         if not provided_key:
             return jsonify({"error": "Unauthorized: X-API-Key header required"}), 401
@@ -82,6 +83,7 @@ def secure_joblib_load(path: str, loader: Callable):
     if not os.path.exists(path):
         return None
 
+    # Verify checksum if present
     expected_hash = _read_hash_file(path)
     if expected_hash is not None:
         actual_hash = _compute_file_hash(path)
@@ -139,12 +141,13 @@ def validate_path_within_base(resolved_path: Path, base_dir: Path) -> bool:
 
 def add_security_headers(response):
     """Add security headers to a Flask response object."""
+    # Set common protective headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-    # CSP in report-only mode initially to avoid breaking things
+    # Content security policy
     response.headers[
         "Content-Security-Policy-Report-Only"
     ] = (
@@ -156,7 +159,7 @@ def add_security_headers(response):
         "img-src 'self' data:;"
     )
 
-    # HSTS only in production / when not on localhost
+    # HSTS for production only
     if not current_app.debug:
         response.headers["Strict-Transport-Security"] = (
             "max-age=31536000; includeSubDomains"

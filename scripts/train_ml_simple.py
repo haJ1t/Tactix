@@ -66,7 +66,7 @@ def train_ml_models(passes_df: pd.DataFrame):
     models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend', 'models', 'trained')
     os.makedirs(models_dir, exist_ok=True)
     
-    # 1. Train Pass Difficulty Model
+    # Train pass difficulty model
     print("\n[1/3] Training Pass Difficulty Model (Random Forest)...")
     pass_model = PassDifficultyModel()
     pass_results = pass_model.train(passes_df)
@@ -74,8 +74,8 @@ def train_ml_models(passes_df: pd.DataFrame):
     print(f"  ✓ Samples used: {pass_results['samples_used']}")
     pass_model.save_model(os.path.join(models_dir, 'pass_difficulty.joblib'))
     print("  ✓ Model saved!")
-    
-    # 2. Train VAEP Model
+
+    # Train VAEP model
     print("\n[2/3] Training VAEP Model (Gradient Boosting)...")
     vaep_model = VAEPModel()
     vaep_results = vaep_model.train(passes_df)
@@ -84,8 +84,8 @@ def train_ml_models(passes_df: pd.DataFrame):
     print(f"  ✓ Samples used: {vaep_results['samples_used']}")
     vaep_model.save_model(os.path.join(models_dir, 'vaep_model.joblib'))
     print("  ✓ Model saved!")
-    
-    # 3. Initialize Tactical Classifier
+
+    # Initialize tactical classifier
     print("\n[3/3] Initializing Tactical Pattern Classifier...")
     pattern_classifier = TacticalPatternClassifier()
     pattern_classifier.save_model(os.path.join(models_dir, 'tactical_classifier.joblib'))

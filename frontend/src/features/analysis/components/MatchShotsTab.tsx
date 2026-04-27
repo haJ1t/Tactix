@@ -7,6 +7,7 @@ import { GlassCard, FadeInUp, AnimatedCounter, AnimatedBar, ShimmerButton } from
 export default function MatchShotsTab() {
     const { currentAnalysis, currentTeamName, homeAnalysis, awayAnalysis, runAnalysis, isRunningAnalysis, match } = useMatchWorkspaceContext();
 
+    // Empty state branch
     if (!currentAnalysis || !currentTeamName) {
         return (
             <EmptyState
@@ -21,6 +22,7 @@ export default function MatchShotsTab() {
         );
     }
 
+    // Per-team shot stats
     const selectedStats = getTeamStats(currentAnalysis);
     const homeStats = getTeamStats(homeAnalysis);
     const awayStats = getTeamStats(awayAnalysis);

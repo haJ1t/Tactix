@@ -3,6 +3,7 @@ import { FadeInUp, GlassCard, AnimatedCounter, StaggerContainer, StaggerItem, Sh
 import { BarChart3, TrendingUp, Network, Activity } from 'lucide-react';
 
 export default function TeamOverviewTab() {
+    // Pull team workspace context
     const { aggregateAnalysis, matches, team, analyzedMatches, season, analysisRequested, isAnalysisPending, requestAnalysis } =
         useTeamDetailsContext();
 

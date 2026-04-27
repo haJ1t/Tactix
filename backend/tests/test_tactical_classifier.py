@@ -26,6 +26,7 @@ class DummyClassifier:
 
 
 class TacticalClassifierTests(unittest.TestCase):
+    # Test class label normalization
     def test_predict_patterns_normalizes_numeric_classifier_classes(self):
         model = TacticalPatternClassifier()
         model.feature_columns = ['density', 'forward_ratio']
@@ -46,6 +47,7 @@ class TacticalClassifierTests(unittest.TestCase):
         self.assertEqual(patterns[0]['pattern_type'], 'CENTRAL_BUILDUP')
         self.assertIsInstance(patterns[0]['pattern_type'], str)
 
+    # Test class inference on load
     def test_load_model_infers_pattern_classes_from_report(self):
         scaler = StandardScaler().fit([[0.0, 0.0], [1.0, 1.0]])
         payload = {
@@ -82,6 +84,7 @@ class TacticalClassifierTests(unittest.TestCase):
 
 
 class CounterTacticEngineTests(unittest.TestCase):
+    # Test numeric type formatting
     def test_summary_handles_numeric_pattern_types(self):
         engine = CounterTacticEngine()
 

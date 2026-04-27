@@ -51,6 +51,7 @@ def build_ml_analysis_payload(
     include_network: bool = False
 ) -> dict:
     """Build the ML analysis snapshot used by routes and PDF generation."""
+    # Decide which teams to analyze
     team_ids = [team_id] if team_id else [match.home_team_id, match.away_team_id]
     ml_pipeline = get_ml_pipeline()
     results = {}
@@ -62,6 +63,7 @@ def build_ml_analysis_payload(
         team = db.query(Team).filter(Team.team_id == tid).first()
         team_name = team.team_name if team else f'Team {tid}'
 
+        # Pull all shots for team
         shots = db.query(Event).filter(
             Event.match_id == match.match_id,
             Event.team_id == tid,
@@ -101,6 +103,7 @@ def build_ml_analysis_payload(
             event = pass_event.event
             passer = pass_event.passer
             recipient = pass_event.recipient
+            # Compute final goal diff
             final_goal_diff = 0
             if tid == match.home_team_id:
                 final_goal_diff = (match.home_score or 0) - (match.away_score or 0)
@@ -146,6 +149,7 @@ def build_ml_analysis_payload(
 
         passes_df = pd.DataFrame(passes_data)
 
+        # Build player lookup map
         player_info = {}
         players = db.query(Player).filter(Player.team_id == tid).all()
         for player in players:
@@ -155,8 +159,10 @@ def build_ml_analysis_payload(
                 'position': player.position,
             }
 
+        # Run ML analysis pipeline
         analysis = ml_pipeline.analyze_passes(passes_df, player_info)
 
+        # Clear old metrics first
         db.query(NetworkMetrics).filter(
             NetworkMetrics.match_id == match.match_id,
             NetworkMetrics.team_id == tid

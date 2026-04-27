@@ -35,6 +35,7 @@ def split_holdout(
         "holdout_matches": 0,
     }
 
+    # Bail out on empty input
     if df is None or df.empty:
         info["reason"] = "empty_dataset"
         return df, df.iloc[0:0], info
@@ -54,6 +55,7 @@ def split_holdout(
         info["reason"] = "missing_competition_or_season"
         return df, df.iloc[0:0], info
 
+    # Build holdout selection mask
     mask = pd.Series(False, index=df.index)
 
     if match_ids:

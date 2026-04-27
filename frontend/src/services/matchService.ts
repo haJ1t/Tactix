@@ -1,6 +1,7 @@
 import api from './api';
 import type { Match, NetworkData, AnalysisResult } from '../types';
 
+// Match API service
 export const matchService = {
     // Get all matches
     async getMatches(): Promise<{ matches: Match[]; count: number }> {

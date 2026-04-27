@@ -12,6 +12,7 @@ describe('reports storage', () => {
         window.localStorage.clear();
     });
 
+    // Test full storage round-trip
     it('saves, reads, and deletes reports from localStorage', () => {
         const report = createStoredReport({
             match: {

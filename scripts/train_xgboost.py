@@ -76,14 +76,15 @@ def compare_pass_difficulty_models(passes_df: pd.DataFrame, holdout_df: pd.DataF
     print("PASS DIFFICULTY - ALGORITHM COMPARISON")
     print("="*60)
     
-    # Prepare features
+    # Drop incomplete rows
     df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
-    
+
+    # Compute pass features
     df['pass_length'] = np.sqrt(
-        (df['end_location_x'] - df['location_x'])**2 + 
+        (df['end_location_x'] - df['location_x'])**2 +
         (df['end_location_y'] - df['location_y'])**2
     )
-    
+
     df['dx'] = df['end_location_x'] - df['location_x']
     df['dy'] = df['end_location_y'] - df['location_y']
     df['is_forward'] = (df['dx'] > 0).astype(int)
@@ -99,13 +100,13 @@ def compare_pass_difficulty_models(passes_df: pd.DataFrame, holdout_df: pd.DataF
     y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int).values
     groups = df['match_id'].values
     
-    # Sample for speed
+    # Subsample for speed
     sample_idx = np.arange(len(X_df))
     if len(X_df) > 100000:
         sample_idx = np.random.choice(len(X_df), 100000, replace=False)
         X_df, y = X_df.iloc[sample_idx], y[sample_idx]
         groups = groups[sample_idx]
-    
+
     print(f"\n  Samples: {len(X_df):,}")
     
     def make_pipeline(model):
@@ -115,10 +116,10 @@ def compare_pass_difficulty_models(passes_df: pd.DataFrame, holdout_df: pd.DataF
         )
         return Pipeline([('preprocess', preprocessor), ('model', model)])
 
-    # Define models
+    # Configure candidate models
     models = {
         'Random Forest': make_pipeline(RandomForestClassifier(
-            n_estimators=200, max_depth=15, min_samples_split=10, 
+            n_estimators=200, max_depth=15, min_samples_split=10,
             min_samples_leaf=2, random_state=42, n_jobs=-1
         )),
         'Gradient Boosting': make_pipeline(GradientBoostingClassifier(
@@ -163,11 +164,11 @@ def compare_pass_difficulty_models(passes_df: pd.DataFrame, holdout_df: pd.DataF
         
         print(f"  {name:<20} {acc_scores.mean():>10.2%}   {f1_scores.mean():>10.2%}   {elapsed:>7.1f}s")
     
-    # Find best model
+    # Pick best by accuracy
     best_model_name = max(results, key=lambda x: results[x]['accuracy_mean'])
     print(f"\n  ✅ Best Model: {best_model_name} ({results[best_model_name]['accuracy_mean']:.2%} accuracy)")
-    
-    # Train and save best model
+
+    # Refit and save winner
     best_model = models[best_model_name]
     best_model.fit(X_df, y)
     
@@ -280,15 +281,17 @@ def compare_tactical_classifier_models(passes_df: pd.DataFrame, holdout_df: pd.D
     X = pd.DataFrame(features_list).values
     feature_cols = list(pd.DataFrame(features_list).columns)
     
+    # Encode labels for sklearn
     le = LabelEncoder()
     y = le.fit_transform(labels)
-    
+
+    # Standardize features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    
+
     print(f"  Classes: {len(le.classes_)}")
-    
-    # Define models
+
+    # Configure candidate models
     models = {
         'Gradient Boosting': GradientBoostingClassifier(
             n_estimators=150, max_depth=3, learning_rate=0.2, random_state=42

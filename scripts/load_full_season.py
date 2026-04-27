@@ -35,19 +35,17 @@ def load_full_season(competition_id: int, season_id: int):
         competition_id: StatsBomb competition ID
         season_id: StatsBomb season ID
     """
-    # Initialize database
+    # Setup database and parser
     init_db()
-    
-    # Create parser
+
     parser = StatsBombParser(DATA_DIR)
-    
-    # Get matches
+
     print(f"Loading matches for competition {competition_id}, season {season_id}...")
-    
+
     matches = parser.parse_matches(competition_id, season_id)
-    
+
+    # Fall back to nested path
     if not matches:
-        # Try open-data subdirectory
         alt_data_dir = os.path.join(DATA_DIR, 'open-data', 'data')
         if os.path.exists(alt_data_dir):
             parser = StatsBombParser(alt_data_dir)
@@ -94,17 +92,17 @@ def load_single_match(parser, match_data: dict) -> str:
     db = SessionLocal()
     
     try:
-        # Check if already exists
+        # Skip if already loaded
         existing = db.query(Match).filter(Match.match_id == match_id).first()
         if existing:
             print(f"  Already loaded, skipping...")
             return 'skipped'
-        
-        # Create teams
+
+        # Upsert team records
         home_team = get_or_create_team(db, match_data['home_team_id'], match_data['home_team_name'])
         away_team = get_or_create_team(db, match_data['away_team_id'], match_data['away_team_name'])
-        
-        # Create match
+
+        # Insert match record
         match = Match(
             match_id=match_id,
             home_team_id=home_team.team_id,
@@ -118,28 +116,28 @@ def load_single_match(parser, match_data: dict) -> str:
         db.add(match)
         db.flush()
         
-        # Load lineups
+        # Load and store lineups
         lineups = parser.parse_lineups(match_id)
         for team_id, players in lineups.items():
             for player_data in players:
                 get_or_create_player(db, player_data)
-        
-        # Load events
+
+        # Pull match events
         events = parser.parse_events(match_id)
-        
+
         if not events:
             print(f"  No events found, skipping...")
             db.rollback()
             return 'skipped'
-        
-        # Add match_id to events
+
+        # Tag events with match
         for event in events:
             event['match_id'] = match_id
-        
-        # Extract passes
+
+        # Extract pass events
         passes = parser.extract_passes(events)
-        
-        # Create event records
+
+        # Insert event rows
         for event_data in events:
             if event_data.get('player_id'):
                 player_data = {
@@ -177,8 +175,8 @@ def load_single_match(parser, match_data: dict) -> str:
             db.add(event)
         
         db.flush()
-        
-        # Create pass records
+
+        # Insert pass rows
         for pass_data in passes:
             if pass_data.get('recipient_id'):
                 recipient_data = {

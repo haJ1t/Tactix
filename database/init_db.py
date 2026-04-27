@@ -13,14 +13,14 @@ from backend.models import init_db, engine, Base
 def initialize_database():
     """Create all database tables."""
     print("Initializing database...")
-    
-    # Ensure database directory exists
+
+    # Ensure target directory exists
     db_dir = os.path.dirname(os.path.abspath(__file__))
     os.makedirs(db_dir, exist_ok=True)
-    
-    # Create all tables
+
+    # Create schema tables
     init_db()
-    
+
     print(f"Database initialized at: {engine.url}")
     print("Tables created:")
     for table in Base.metadata.tables.keys():

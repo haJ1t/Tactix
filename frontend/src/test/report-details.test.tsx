@@ -12,6 +12,7 @@ describe('ReportDetailsPage', () => {
         vi.restoreAllMocks();
     });
 
+    // Test missing report empty state
     it('shows a controlled empty state when the report is missing', async () => {
         vi.spyOn(reportService, 'getReport').mockResolvedValue(null);
 

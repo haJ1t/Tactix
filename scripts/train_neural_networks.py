@@ -170,10 +170,10 @@ class PassSequenceGRU(nn.Module):
 def prepare_features(df: pd.DataFrame, scaler: StandardScaler = None) -> tuple:
     """Prepare features for neural network."""
     df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
-    
-    # Calculate features
+
+    # Compute geometric features
     df['pass_length'] = np.sqrt(
-        (df['end_location_x'] - df['location_x'])**2 + 
+        (df['end_location_x'] - df['location_x'])**2 +
         (df['end_location_y'] - df['location_y'])**2
     )
     df['dx'] = df['end_location_x'] - df['location_x']
@@ -186,8 +186,8 @@ def prepare_features(df: pd.DataFrame, scaler: StandardScaler = None) -> tuple:
     
     X = df[feature_cols].fillna(0).values
     y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int).values
-    
-    # Normalize
+
+    # Standardize features
     if scaler is None:
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
@@ -214,18 +214,18 @@ def prepare_sequences(df: pd.DataFrame, seq_length: int = 5, scaler: StandardSca
     feature_cols = ['location_x', 'location_y', 'end_location_x', 'end_location_y',
                     'pass_length', 'dx', 'dy']
     
-    # Create sequences
+    # Build pass sequences
     X_sequences = []
     y_sequences = []
     groups = []
-    
+
     grouped = df.groupby(['match_id', 'team_id'])
-    
+
     for (match_id, team_id), group in grouped:
         features = group[feature_cols].values
         outcomes = (group['pass_outcome'].isna() | (group['pass_outcome'] == 'Complete')).astype(int).values
-        
-        # Create sliding windows
+
+        # Slide window over passes
         for i in range(seq_length, len(features)):
             X_sequences.append(features[i-seq_length:i])
             y_sequences.append(outcomes[i-1])  # Predict last pass in sequence
@@ -263,11 +263,11 @@ def train_feedforward_nn(
     print("FEED-FORWARD NEURAL NETWORK")
     print("="*60)
     
-    # Sample for speed
+    # Subsample for speed
     if len(X) > 100000:
         idx = np.random.choice(len(X), 100000, replace=False)
         X, y, groups = X[idx], y[idx], groups[idx]
-    
+
     if X_holdout is not None and y_holdout is not None and len(X_holdout) > 0:
         X_train, y_train = X, y
         X_test, y_test = X_holdout, y_holdout
@@ -276,17 +276,17 @@ def train_feedforward_nn(
         train_idx, test_idx = next(splitter.split(X, y, groups))
         X_train, X_test, y_train, y_test = X[train_idx], X[test_idx], y[train_idx], y[test_idx]
     
-    # Convert to tensors
+    # Move tensors to device
     X_train_t = torch.FloatTensor(X_train).to(device)
     y_train_t = torch.FloatTensor(y_train).reshape(-1, 1).to(device)
     X_test_t = torch.FloatTensor(X_test).to(device)
     y_test_t = torch.FloatTensor(y_test).reshape(-1, 1).to(device)
-    
-    # Create data loader
+
+    # Build training loader
     train_dataset = TensorDataset(X_train_t, y_train_t)
     train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True)
-    
-    # Model
+
+    # Init model and optimizer
     model = PassDifficultyNN(input_size=X.shape[1]).to(device)
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -296,14 +296,14 @@ def train_feedforward_nn(
     print(f"  Architecture: {X.shape[1]} -> 128 -> 64 -> 32 -> 1")
     print(f"  Training on {device}...")
     
-    # Training
+    # Training loop
     epochs = 20
     best_acc = 0
-    
+
     for epoch in range(epochs):
         model.train()
         total_loss = 0
-        
+
         for batch_X, batch_y in train_loader:
             optimizer.zero_grad()
             outputs = model(batch_X)
@@ -311,10 +311,10 @@ def train_feedforward_nn(
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-        
+
         scheduler.step()
-        
-        # Evaluate
+
+        # Per-epoch evaluation
         model.eval()
         with torch.no_grad():
             predictions = model(X_test_t)

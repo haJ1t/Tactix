@@ -31,6 +31,7 @@ const teamIdsForMatch = (match: Match | null | undefined) =>
     [match?.home_team?.team_id, match?.away_team?.team_id].filter((id): id is number => Boolean(id));
 
 export default function MatchWorkspacePage() {
+    // Route and query state
     const { matchId } = useParams<{ matchId: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -39,6 +40,7 @@ export default function MatchWorkspacePage() {
     const analysisQuery = useMatchAnalysis(Number.isNaN(parsedMatchId) ? null : parsedMatchId, 'all');
     const [currentTeamId, setCurrentTeamIdState] = useState<number | null>(null);
 
+    // Sync team lens with URL
     useEffect(() => {
         if (!matchQuery.data) {
             return;
@@ -55,6 +57,7 @@ export default function MatchWorkspacePage() {
         setCurrentTeamIdState((current) => (current === nextTeamId ? current : nextTeamId));
     }, [currentTeamId, matchQuery.data, searchParams]);
 
+    // Auto-run analysis from URL flag
     useEffect(() => {
         const shouldRun = searchParams.get('run') === '1';
         if (!shouldRun || !matchQuery.data || analysisQuery.isFetching || analysisQuery.data) {
@@ -64,6 +67,7 @@ export default function MatchWorkspacePage() {
         void analysisQuery.refetch();
     }, [analysisQuery, matchQuery.data, searchParams]);
 
+    // Clear run flag once finished
     useEffect(() => {
         if (searchParams.get('run') !== '1' || !analysisQuery.data) {
             return;
@@ -74,6 +78,7 @@ export default function MatchWorkspacePage() {
         setSearchParams(nextParams, { replace: true });
     }, [analysisQuery.data, searchParams, setSearchParams]);
 
+    // Update active team and URL
     const setCurrentTeamId = useCallback(
         (teamId: number) => {
             setCurrentTeamIdState(teamId);
@@ -84,12 +89,14 @@ export default function MatchWorkspacePage() {
         [searchParams, setSearchParams]
     );
 
+    // Resolve team and analysis context
     const currentTeamName = getTeamNameById(matchQuery.data || null, currentTeamId);
     const homeAnalysis = getAnalysisForTeam(analysisQuery.data, matchQuery.data?.home_team?.team_name);
     const awayAnalysis = getAnalysisForTeam(analysisQuery.data, matchQuery.data?.away_team?.team_name);
     const currentAnalysis = getAnalysisForTeam(analysisQuery.data, currentTeamName);
     const analysisIsPartial = Boolean(analysisQuery.data && (!homeAnalysis || !awayAnalysis));
 
+    // Build hero status chips
     const heroSignals = useMemo(() => {
         if (!matchQuery.data || !homeAnalysis || !awayAnalysis) {
             return ['Pass network lens', 'Player influence map', 'Shot quality and counter plan'];
@@ -105,6 +112,7 @@ export default function MatchWorkspacePage() {
         ];
     }, [awayAnalysis, currentTeamName, homeAnalysis, matchQuery.data]);
 
+    // Pick the leading insight for hero
     const heroStory = useMemo(() => {
         if (!matchQuery.data) {
             return 'Loading match context.';
@@ -133,6 +141,7 @@ export default function MatchWorkspacePage() {
         return insights[0] || 'Analysis is ready. Use the tabs to inspect passing, players, tactical signals, shot quality, and report output.';
     }, [awayAnalysis, homeAnalysis, matchQuery.data]);
 
+    // Workspace tab definitions
     const lensSearch = currentTeamId ? `?team=${currentTeamId}` : '';
     const tabs = useMemo(
         () => [
@@ -146,10 +155,12 @@ export default function MatchWorkspacePage() {
         [lensSearch]
     );
 
+    // Loading branch
     if (matchQuery.isLoading) {
         return <LoadingState title="Loading workspace" description="Preparing the match workspace." />;
     }
 
+    // Error branch
     if (matchQuery.isError || !matchQuery.data) {
         return (
             <ErrorState
@@ -160,10 +171,12 @@ export default function MatchWorkspacePage() {
         );
     }
 
+    // Re-fetch analysis on demand
     const runAnalysis = async () => {
         await analysisQuery.refetch();
     };
 
+    // Derive analysis status label
     const teams = [matchQuery.data.home_team, matchQuery.data.away_team].filter(Boolean);
     const analysisState = analysisQuery.isFetching
         ? 'Running'

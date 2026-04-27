@@ -79,10 +79,12 @@ def get_all_passes_from_db() -> pd.DataFrame:
 
 def build_pass_dataset(df: pd.DataFrame):
     """Build dataset for pass difficulty tuning."""
+    # Drop incomplete rows
     df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
-    
+
+    # Engineer derived features
     df['pass_length'] = np.sqrt(
-        (df['end_location_x'] - df['location_x'])**2 + 
+        (df['end_location_x'] - df['location_x'])**2 +
         (df['end_location_y'] - df['location_y'])**2
     )
     df['dx'] = df['end_location_x'] - df['location_x']
@@ -106,6 +108,7 @@ def build_pass_dataset(df: pd.DataFrame):
 
 
 def objective_pass(trial, X_df, y, groups, cat_cols):
+    # Define search space
     params = {
         'n_estimators': trial.suggest_int('n_estimators', 100, 400),
         'num_leaves': trial.suggest_int('num_leaves', 16, 128),
@@ -128,17 +131,19 @@ def objective_pass(trial, X_df, y, groups, cat_cols):
     )
     pipeline = Pipeline([('preprocess', preprocessor), ('model', model)])
     
+    # Run grouped CV
     gkf = GroupKFold(n_splits=5)
     start = time.time()
     scores = cross_val_score(pipeline, X_df, y, cv=gkf, groups=groups, scoring='f1', n_jobs=-1)
     elapsed = time.time() - start
-    
+
+    # Apply time penalty
     score = scores.mean()
     value = score - (SPEED_PENALTY * np.log1p(elapsed))
-    
+
     trial.set_user_attr("f1", score)
     trial.set_user_attr("elapsed", elapsed)
-    
+
     return value
 
 
@@ -148,7 +153,8 @@ def tune_pass_difficulty(train_df: pd.DataFrame, holdout_df: pd.DataFrame):
     print("="*60)
     
     X_df, y, groups, num_cols, cat_cols = build_pass_dataset(train_df)
-    
+
+    # Run optuna study
     study = optuna.create_study(direction='maximize')
     study.optimize(lambda t: objective_pass(t, X_df, y, groups, cat_cols), n_trials=N_TRIALS_PASS)
     
@@ -162,6 +168,7 @@ def tune_pass_difficulty(train_df: pd.DataFrame, holdout_df: pd.DataFrame):
     print(f"  Train Time: {best_time:.1f}s" if best_time is not None else "  Train Time: n/a")
     print(f"  Params: {best_params}")
     
+    # Refit best on full data
     model = lgb.LGBMClassifier(**best_params, random_state=42, n_jobs=-1, verbose=-1)
     preprocessor = ColumnTransformer(
         [('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), cat_cols)],

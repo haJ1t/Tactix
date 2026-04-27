@@ -57,12 +57,12 @@ def generate_synthetic_training_data(passes_df: pd.DataFrame, n_samples: int = 5
     cleaner = DataCleaner()
     builder = NetworkBuilder()
     classifier = TacticalPatternClassifier()
-    
-    # Build real network from actual data
+
+    # Build base network
     successful_passes = cleaner.get_successful_passes(passes_df)
     G = builder.build_pass_network(successful_passes)
-    
-    # Get node positions
+
+    # Map node positions
     node_positions = {}
     for node in G.nodes():
         node_data = G.nodes[node]
@@ -70,26 +70,26 @@ def generate_synthetic_training_data(passes_df: pd.DataFrame, n_samples: int = 5
             node_data.get('x', 60),
             node_data.get('y', 40)
         )
-    
-    # Extract real features
+
+    # Extract base features
     real_features = classifier.extract_network_features(G, node_positions)
-    
-    # Generate synthetic variations
+
+    # Synthesize feature variants
     features_list = [real_features]
-    
+
     np.random.seed(42)
-    
+
     for i in range(n_samples - 1):
-        # Create variation by adding noise and changing some parameters
+        # Apply random perturbations
         variation = real_features.copy()
-        
-        # Add gaussian noise to numeric features
+
+        # Inject gaussian noise
         for key in variation:
             if isinstance(variation[key], (int, float)):
                 noise = np.random.normal(0, abs(variation[key]) * 0.15 + 0.01)
                 variation[key] = max(0, min(1, variation[key] + noise))
         
-        # Randomly shift playing style characteristics
+        # Bias toward a play style
         style_shift = np.random.choice([
             'direct', 'possession', 'wing_left', 'wing_right', 'central', 'balanced'
         ])

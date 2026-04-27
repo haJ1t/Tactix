@@ -12,6 +12,7 @@ import { FadeInUp, PageTransition, StaggerContainer, StaggerItem } from '@/share
 
 export default function ReportsPage() {
     const navigate = useNavigate();
+    // Read selection state from URL
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedMatchId = Number(searchParams.get('match')) || null;
     const matchesQuery = useMatches();
@@ -20,11 +21,13 @@ export default function ReportsPage() {
     const importLegacyMutation = useImportLegacyReport();
     const deleteReportMutation = useDeleteReport();
 
+    // Memoize chosen match
     const selectedMatch = useMemo(
         () => matchesQuery.data?.matches.find((match) => match.match_id === selectedMatchId) || null,
         [matchesQuery.data?.matches, selectedMatchId]
     );
 
+    // Sync selection back to URL
     const setSelectedMatchId = (matchId: number | null) => {
         const next = new URLSearchParams(searchParams);
         if (matchId) {
@@ -35,10 +38,12 @@ export default function ReportsPage() {
         setSearchParams(next, { replace: true });
     };
 
+    // Loading branch
     if (matchesQuery.isLoading || reportsQuery.isLoading) {
         return <LoadingState title="Loading reports" description="Preparing report artifacts and match options." />;
     }
 
+    // Error branch
     if (matchesQuery.isError || reportsQuery.isError) {
         return (
             <ErrorState
@@ -52,6 +57,7 @@ export default function ReportsPage() {
         );
     }
 
+    // Create new dossier for selected match
     const generateReport = async () => {
         if (!selectedMatchId) {
             return;
@@ -61,10 +67,12 @@ export default function ReportsPage() {
         navigate(`/reports/${created.id}`);
     };
 
+    // Open the PDF in a new tab
     const downloadPdf = (reportId: string) => {
         window.open(reportService.getDownloadUrl(reportId), '_blank', 'noopener');
     };
 
+    // Confirm and delete report
     const deleteReport = async (reportId: string) => {
         const confirmed = window.confirm('Delete this generated report? This removes the backend artifact.');
         if (!confirmed) {

@@ -36,8 +36,10 @@ interface TeamSeasonsResult {
     latestSeason: string | null;
 }
 
+// Normalize text for comparison
 const normalizeText = (value?: string | null) => (value || '').trim().toLowerCase();
 
+// Detect national vs club team
 export const isLikelyNationalTeam = (team?: { team_name?: string; country?: string } | null): boolean => {
     if (!team?.team_name || !team?.country) {
         return false;
@@ -49,6 +51,7 @@ export const isLikelyNationalTeam = (team?: { team_name?: string; country?: stri
 const compareByRecentMatch = (first: { latestMatchDate: string }, second: { latestMatchDate: string }) =>
     new Date(second.latestMatchDate).getTime() - new Date(first.latestMatchDate).getTime();
 
+// Group teams by season from matches
 const buildTeamSeasonEntries = (
     teams: Array<{ team_id: number; team_name: string; country?: string }>,
     matches: Match[]
@@ -56,6 +59,7 @@ const buildTeamSeasonEntries = (
     const teamMap = new Map(teams.map((team) => [team.team_id, team]));
     const grouped = new Map<string, TeamSeasonEntry>();
 
+    // Walk every match and accumulate
     matches.forEach((match) => {
         const season = match.season?.trim();
         const participants = [match.home_team, match.away_team];
@@ -96,6 +100,7 @@ const buildTeamSeasonEntries = (
         });
     });
 
+    // Sort matches per entry by date
     grouped.forEach((entry) => {
         entry.matches.sort((first, second) => new Date(second.match_date).getTime() - new Date(first.match_date).getTime());
         entry.latestMatchDate = entry.matches[0]?.match_date || entry.latestMatchDate;
@@ -107,11 +112,13 @@ const buildTeamSeasonEntries = (
     });
 };
 
+// Fetch and filter team season catalog
 export const useTeams = (filters: TeamFilters = {}) =>
     {
         const query = useQuery({
         queryKey: queryKeys.teams(filters),
         queryFn: async (): Promise<TeamsCatalogResult> => {
+            // Load teams and matches together
             const [teamsData, matchesData] = await Promise.all([teamService.getTeams(), matchService.getMatches()]);
             const allTeams = buildTeamSeasonEntries(teamsData.teams || [], matchesData.matches || []);
 
@@ -124,6 +131,7 @@ export const useTeams = (filters: TeamFilters = {}) =>
         },
     });
 
+        // Apply search and segment filters
         const data = useMemo((): TeamsCatalogResult | undefined => {
             if (!query.data) {
                 return undefined;
@@ -160,6 +168,7 @@ export const useTeams = (filters: TeamFilters = {}) =>
         };
     };
 
+// Get available seasons for a team
 export const useTeamSeasons = (teamId: number | null) =>
     useQuery({
         queryKey: teamId ? queryKeys.teamSeasons(teamId) : ['team-seasons', 'empty'],
@@ -177,6 +186,7 @@ export const useTeamSeasons = (teamId: number | null) =>
         enabled: Boolean(teamId),
     });
 
+// Get team profile for one season
 export const useTeam = (teamId: number | null, season: string | null) =>
     useQuery({
         queryKey: teamId && season ? queryKeys.team(teamId, season) : ['team', 'empty'],
@@ -187,6 +197,7 @@ export const useTeam = (teamId: number | null, season: string | null) =>
         enabled: Boolean(teamId && season),
     });
 
+// Aggregate analysis across team's matches
 export const useTeamAnalysis = (
     teamId: number | null,
     season: string | null,
@@ -203,6 +214,7 @@ export const useTeamAnalysis = (
                 matchService.getMatches(),
             ]);
 
+            // Limit to this team and season
             const matches = (matchesData.matches || []).filter(
                 (match) =>
                     (match.home_team?.team_id === teamId || match.away_team?.team_id === teamId) &&
@@ -220,11 +232,13 @@ export const useTeamAnalysis = (
 
             let results: TeamAnalysis[] = [];
 
+            // Run sample analysis on first five matches
             if (options.includeAnalysis) {
                 const settled = await Promise.allSettled(
                     matches.slice(0, 5).map((match) => matchService.analyzeMatchML(match.match_id, teamId as number))
                 );
 
+                // Keep only successful results
                 results = settled.flatMap((result) => {
                     if (result.status !== 'fulfilled') {
                         return [];

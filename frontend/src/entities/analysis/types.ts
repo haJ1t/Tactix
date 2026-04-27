@@ -1,5 +1,6 @@
 import type { PlayerMetrics } from '@/entities/player';
 
+// Pass network player node
 export interface NetworkNode {
     id: number;
     name: string;
@@ -10,12 +11,14 @@ export interface NetworkNode {
     pagerank?: number;
 }
 
+// Pass network connection
 export interface NetworkEdge {
     source: number;
     target: number;
     weight: number;
 }
 
+// Aggregated network metrics
 export interface NetworkStatistics {
     density: number;
     num_nodes: number;
@@ -32,6 +35,7 @@ export interface NetworkData {
     statistics: NetworkStatistics;
 }
 
+// Detected tactical pattern
 export interface TacticalPattern {
     pattern_id?: number;
     pattern_type: string;
@@ -42,6 +46,7 @@ export interface TacticalPattern {
     side?: string;
 }
 
+// Suggested counter-tactic
 export interface CounterTactic {
     tactic_id?: number;
     pattern_id?: number;
@@ -52,6 +57,7 @@ export interface CounterTactic {
     target_player_name?: string;
 }
 
+// Shot statistics summary
 export interface ShotSummary {
     total_shots: number;
     xg_total: number;
@@ -79,6 +85,7 @@ export interface MatchNetwork {
     positions?: Record<string, { x: number; y: number }>;
 }
 
+// Full team analysis payload
 export interface TeamAnalysis {
     network_statistics: NetworkStatistics;
     player_metrics: PlayerMetrics[];
@@ -98,6 +105,7 @@ export interface AnalysisResult {
     analysis: Record<string, TeamAnalysis>;
 }
 
+// Season-wide team aggregate
 export interface TeamAggregateAnalysis {
     totalMatches: number;
     wins: number;

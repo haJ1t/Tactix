@@ -1,5 +1,6 @@
 import type { StoredReport } from '@/shared/lib/reports-storage';
 
+// Lightweight report metadata
 export interface ReportArtifactSummary {
     id: string;
     match_id: number;
@@ -15,6 +16,7 @@ export interface ReportArtifactSummary {
     pdf_download_url: string;
 }
 
+// Single section of a dossier
 export interface ReportSectionSummary {
     id: string;
     title: string;
@@ -22,6 +24,7 @@ export interface ReportSectionSummary {
     status: 'complete' | 'partial';
 }
 
+// Per-team summary block
 export interface ReportTeamSummary {
     team_name: string;
     total_passes: number;
@@ -32,6 +35,7 @@ export interface ReportTeamSummary {
     top_connector?: string | null;
 }
 
+// Full report with snapshot data
 export interface ReportArtifactDetails extends ReportArtifactSummary {
     snapshot_summary: {
         executive_summary?: string | null;
@@ -44,6 +48,7 @@ export interface ReportArtifactDetails extends ReportArtifactSummary {
 
 export type LegacyStoredReport = StoredReport;
 
+// Common shape for list rows
 export interface ReportListItemBase {
     id: string;
     kind: 'artifact' | 'legacy';
@@ -70,6 +75,7 @@ export interface LegacyReportListItem extends ReportListItemBase {
 
 export type ReportListItem = ArtifactReportListItem | LegacyReportListItem;
 
+// Discriminated union for details view
 export type ReportDetailsResult =
     | { kind: 'artifact'; artifact: ReportArtifactDetails }
     | { kind: 'legacy'; legacy: LegacyStoredReport };

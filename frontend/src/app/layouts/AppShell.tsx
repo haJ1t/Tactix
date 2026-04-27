@@ -13,6 +13,7 @@ import {
     Zap,
 } from 'lucide-react';
 
+// Sidebar navigation items
 const navItems = [
     { label: 'Overview', to: '/overview', icon: LayoutDashboard },
     { label: 'Matches', to: '/matches', icon: Crosshair },
@@ -20,6 +21,7 @@ const navItems = [
     { label: 'Reports', to: '/reports', icon: FileText },
 ];
 
+// Header titles per section
 const sectionTitles: Record<string, { title: string; context: string }> = {
     overview: { title: 'Overview', context: 'Workspace summary and recent analysis' },
     matches: { title: 'Matches', context: 'Fixture catalog and match review' },
@@ -27,6 +29,7 @@ const sectionTitles: Record<string, { title: string; context: string }> = {
     reports: { title: 'Reports', context: 'PDF dossiers and saved outputs' },
 };
 
+// Resolve current section meta
 const getShellMeta = (pathname: string) => {
     const firstSegment = pathname.split('/').filter(Boolean)[0] || 'overview';
     return sectionTitles[firstSegment] || sectionTitles.overview;
@@ -108,18 +111,21 @@ function SidebarContent({
     );
 }
 
+// Main layout shell component
 export default function AppShell() {
     const location = useLocation();
     const meta = getShellMeta(location.pathname);
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
+    // Close mobile drawer on route change
     useEffect(() => {
         setMobileOpen(false);
     }, [location.pathname]);
 
     return (
         <div className="min-h-screen bg-transparent text-[var(--text-primary)]">
+            {/* Desktop sidebar */}
             <aside
                 className={[
                     'fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-[var(--border)] bg-[rgba(255,255,255,0.86)] shadow-[var(--shadow-xs)] backdrop-blur md:flex',
@@ -129,6 +135,7 @@ export default function AppShell() {
                 <SidebarContent collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
             </aside>
 
+            {/* Mobile drawer */}
             <AnimatePresence>
                 {mobileOpen && (
                     <>

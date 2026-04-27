@@ -1,8 +1,10 @@
 import type { LegacyStoredReport, ReportArtifactSummary, ReportListItem } from '@/features/reports/types';
 
+// Sort newest first
 const compareByCreatedAt = (left: { createdAt: string }, right: { createdAt: string }) =>
     new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
 
+// Map artifact into shared list shape
 export const toArtifactListItem = (artifact: ReportArtifactSummary): ReportListItem => ({
     id: artifact.id,
     kind: 'artifact',
@@ -17,6 +19,7 @@ export const toArtifactListItem = (artifact: ReportArtifactSummary): ReportListI
     artifact,
 });
 
+// Map legacy report into shared list shape
 export const toLegacyListItem = (legacy: LegacyStoredReport): ReportListItem => ({
     id: legacy.id,
     kind: 'legacy',
@@ -31,6 +34,7 @@ export const toLegacyListItem = (legacy: LegacyStoredReport): ReportListItem => 
     legacy,
 });
 
+// Combine and order both sources
 export const buildReportListItems = (
     artifacts: ReportArtifactSummary[],
     legacyReports: LegacyStoredReport[]

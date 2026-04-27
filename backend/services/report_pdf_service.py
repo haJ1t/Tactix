@@ -107,6 +107,7 @@ def _build_comparative_insights(match: Match | None, home_name: str, away_name: 
     away_stats = _analysis_stats(away_analysis)
     insights: list[str] = []
 
+    # Compare passing volumes
     total_passes = home_stats['total_passes'] + away_stats['total_passes']
     if total_passes:
         pass_share = home_stats['total_passes'] / total_passes
@@ -115,6 +116,7 @@ def _build_comparative_insights(match: Match | None, home_name: str, away_name: 
         elif pass_share <= 0.45:
             insights.append(f'{away_name} controlled more of the passing volume ({(1 - pass_share) * 100:.0f}% share).')
 
+    # Compare network density
     density_diff = home_stats['density'] - away_stats['density']
     if abs(density_diff) >= 0.05:
         leader = home_name if density_diff > 0 else away_name
@@ -333,6 +335,7 @@ class ReportPdfService:
 
         from api.match_routes import build_ml_analysis_payload
 
+        # Build snapshot payload
         analysis_payload = build_ml_analysis_payload(db, match, include_network=True)
         snapshot = self._build_generated_snapshot(match, analysis_payload)
         artifact = self._build_artifact(
@@ -483,6 +486,7 @@ class ReportPdfService:
             author='Tactix',
         )
 
+        # Assemble all PDF sections
         story = []
         story.extend(self._build_cover_page(artifact, snapshot))
         story.extend(self._build_executive_summary_page(snapshot))
@@ -738,6 +742,7 @@ class ReportPdfService:
         drawing.add(Circle(pitch_x + pitch_width / 2, pitch_y + pitch_height / 2, 16, strokeColor=colors.HexColor('#334155'), fillColor=None))
         drawing.add(String(pitch_x, height - 8, f'{team_name} passing map', fontName='Helvetica-Bold', fontSize=9, fillColor=colors.HexColor('#0f172a')))
 
+        # Map nodes and prepare layout
         top_player_ids = {player.get('player_id') for player in top_players}
         nodes = {node.get('id'): node for node in network.get('nodes', [])}
         edges = network.get('edges', [])
@@ -749,6 +754,7 @@ class ReportPdfService:
             chart_y = pitch_y + pitch_height - (y / 80.0) * pitch_height
             return chart_x, chart_y
 
+        # Draw network edges
         for edge in edges:
             source = nodes.get(edge.get('source'))
             target = nodes.get(edge.get('target'))
@@ -769,6 +775,7 @@ class ReportPdfService:
                 )
             )
 
+        # Draw player nodes
         for node in nodes.values():
             x, y = node_pos(node)
             player_id = node.get('id')

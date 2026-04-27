@@ -6,6 +6,7 @@ interface LoadingStateProps {
     compact?: boolean;
 }
 
+// Spinner with title and description
 export function LoadingState({
     title = 'Loading',
     description = 'Fetching the latest data.',

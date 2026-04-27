@@ -85,6 +85,7 @@ def _table_columns(conn, table_name: str) -> set:
 def ensure_schema_upgrades():
     """Apply lightweight additive SQLite schema upgrades in-place."""
     with engine.begin() as conn:
+        # Fetch existing table names
         existing_tables = {
             row[0]
             for row in conn.exec_driver_sql(
@@ -100,6 +101,7 @@ def ensure_schema_upgrades():
             if not _is_safe_identifier(table_name):
                 continue
 
+            # Add any missing columns
             current_columns = _table_columns(conn, table_name)
             for column_name, column_type in columns.items():
                 if column_name in current_columns:

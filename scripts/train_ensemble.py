@@ -85,10 +85,10 @@ def get_all_passes_from_db():
 def prepare_features(df: pd.DataFrame) -> tuple:
     """Prepare enhanced features for ensemble."""
     df = df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
-    
-    # Basic features
+
+    # Build basic geometric features
     df['pass_length'] = np.sqrt(
-        (df['end_location_x'] - df['location_x'])**2 + 
+        (df['end_location_x'] - df['location_x'])**2 +
         (df['end_location_y'] - df['location_y'])**2
     )
     df['dx'] = df['end_location_x'] - df['location_x']
@@ -96,13 +96,13 @@ def prepare_features(df: pd.DataFrame) -> tuple:
     df['is_forward'] = (df['dx'] > 5).astype(int)
     df['is_backward'] = (df['dx'] < -5).astype(int)
     df['is_long_pass'] = (df['pass_length'] > 25).astype(int)
-    
-    # Pressure features
+
+    # Add pressure-zone flags
     df['distance_to_goal'] = 120 - df['location_x']
     df['in_final_third'] = (df['location_x'] >= 80).astype(int)
     df['in_box'] = ((df['location_x'] > 102) & (np.abs(df['location_y'] - 40) < 22)).astype(int)
-    
-    # Game state
+
+    # Add game state features
     df['normalized_minute'] = df['minute'] / 90
     df['is_late_game'] = (df['minute'] >= 75).astype(int)
     
@@ -128,7 +128,7 @@ def train_ensemble_models(X_df: pd.DataFrame, y: np.ndarray, num_cols: list, cat
     print("ENSEMBLE MODEL TRAINING")
     print("="*60)
     
-    # Sample for speed
+    # Subsample for speed
     if len(X_df) > 100000:
         idx = np.random.choice(len(X_df), 100000, replace=False)
         X_df, y = X_df.iloc[idx], y[idx]
@@ -143,7 +143,7 @@ def train_ensemble_models(X_df: pd.DataFrame, y: np.ndarray, num_cols: list, cat
         )
         return Pipeline([('preprocess', preprocessor), ('model', model)])
     
-    # Base models
+    # Define base learners
     rf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)
     gb = GradientBoostingClassifier(n_estimators=100, max_depth=5, learning_rate=0.1, random_state=42)
     xgb_clf = xgb.XGBClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbosity=0)
@@ -250,8 +250,8 @@ def train_ensemble_models(X_df: pd.DataFrame, y: np.ndarray, num_cols: list, cat
     
     # Blending (manual implementation)
     print("\n  Training Blending Ensemble (manual)...")
-    
-    # Split data for blending
+
+    # Group split for blending
     splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
     train_idx, blend_train_idx = next(splitter.split(X_df, y, groups))
     
@@ -268,22 +268,22 @@ def train_ensemble_models(X_df: pd.DataFrame, y: np.ndarray, num_cols: list, cat
     X_train = np.hstack([X_train_num, X_train_cat])
     X_blend = np.hstack([X_blend_num, X_blend_cat])
     
-    # Train base models
+    # Build base learner pool
     base_models = [
         RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1),
         xgb.XGBClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbosity=0),
         lgb.LGBMClassifier(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1),
         ExtraTreesClassifier(n_estimators=100, max_depth=10, random_state=42, n_jobs=-1)
     ]
-    
-    # Generate blend features
+
+    # Get base predictions
     blend_features = np.zeros((len(X_blend), len(base_models)))
-    
+
     for i, model in enumerate(base_models):
         model.fit(X_train, y_train)
         blend_features[:, i] = model.predict_proba(X_blend)[:, 1]
-    
-    # Train meta-model
+
+    # Fit blending meta-model
     meta_model = LogisticRegression(max_iter=1000)
     meta_model.fit(blend_features, y_blend)
     
@@ -374,7 +374,8 @@ def train_final_ensemble(
         remainder='passthrough'
     )
     final_pipeline = Pipeline([('preprocess', preprocessor), ('model', final_ensemble)])
-    
+
+    # Fit on full training set
     print("\n  Training final ensemble on full data...")
     final_pipeline.fit(X_df, y)
     

@@ -7,6 +7,7 @@ interface RenderOptions {
     route?: string;
 }
 
+// Render with router and query client
 export const renderWithProviders = (ui: ReactElement, options: RenderOptions = {}) => {
     const queryClient = new QueryClient({
         defaultOptions: {

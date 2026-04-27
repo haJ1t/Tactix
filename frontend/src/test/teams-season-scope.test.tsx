@@ -179,6 +179,7 @@ beforeEach(() => {
 });
 
 describe('Teams season scoping', () => {
+    // Test season-split team entries
     it('renders the same team as separate season entries in the teams catalog', async () => {
         const queryClient = new QueryClient({
             defaultOptions: {
@@ -200,6 +201,7 @@ describe('Teams season scoping', () => {
         expect(screen.getByText('6 season entries')).toBeInTheDocument();
     });
 
+    // Test default season redirect
     it('redirects to the latest season when no season query is provided and waits for manual analysis', async () => {
         renderTeamWorkspace('/teams/10/overview');
 
@@ -219,6 +221,7 @@ describe('Teams season scoping', () => {
         expect(analyzeMatchML).toHaveBeenCalledWith(2, 10);
     });
 
+    // Test season query persistence
     it('preserves the season query while switching team tabs', async () => {
         renderTeamWorkspace('/teams/10/overview?season=2023/24');
 

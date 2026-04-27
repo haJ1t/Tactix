@@ -9,6 +9,7 @@ import { FadeInUp, GlassCard, AnimatedCounter, AnimatedBar, StaggerContainer, St
 export default function MatchOverviewTab() {
     const { match, currentAnalysis, currentTeamName, homeAnalysis, awayAnalysis, runAnalysis, isRunningAnalysis } = useMatchWorkspaceContext();
 
+    // Build overview stats and insights
     const overview = useMemo(() => {
         const homeStats = getTeamStats(homeAnalysis);
         const awayStats = getTeamStats(awayAnalysis);
@@ -37,6 +38,7 @@ export default function MatchOverviewTab() {
         };
     }, [awayAnalysis, homeAnalysis, match]);
 
+    // Show CTA when analysis missing
     if (!currentAnalysis || !currentTeamName) {
         return (
             <EmptyState
@@ -51,6 +53,7 @@ export default function MatchOverviewTab() {
         );
     }
 
+    // Stats for the active team
     const selectedStats = getTeamStats(currentAnalysis);
     const topPlayers = getTopPlayers(currentAnalysis, currentTeamName, 5);
     const selectedTeamPassShare = currentTeamName === match.home_team?.team_name ? overview.passShareHome : overview.passShareAway;

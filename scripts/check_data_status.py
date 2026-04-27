@@ -22,20 +22,20 @@ if not os.path.exists(os.path.join(DATA_DIR, 'competitions.json')):
      DATA_DIR = os.path.join(DATA_DIR, 'open-data', 'data')
 
 def check_status():
-    # 1. Database Counts
+    # Query database counts
     db = SessionLocal()
     try:
         loaded_matches = db.query(func.count(Match.match_id)).scalar() or 0
         loaded_events = db.query(func.count(Event.event_id)).scalar() or 0
-        
-        # Get loaded seasons (distinct competition_id, season_id)
+
+        # Distinct loaded seasons
         loaded_seasons_query = db.query(Match.competition, Match.season).distinct().all()
         loaded_seasons_count = len(loaded_seasons_query)
-        
+
     finally:
         db.close()
 
-    # 2. File System Counts
+    # Scan filesystem counts
     total_matches = 0
     total_seasons = 0
     
@@ -54,7 +54,7 @@ def check_status():
                         matches = json.load(mf)
                         total_matches += len(matches)
 
-    # Estimate total events (avg 3300 per match)
+    # Estimate event volume
     estimated_total_events = total_matches * 3300
 
     print(f"--- Data Status ---")

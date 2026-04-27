@@ -9,11 +9,14 @@ import { ErrorState } from '@/shared/ui/ErrorState';
 import { GlassCard, FadeInUp, ShimmerButton } from '@/shared/ui/motion';
 
 export default function MatchNetworkTab() {
+    // Workspace context and network data
     const { match, currentAnalysis, currentTeamId, currentTeamName, runAnalysis, isRunningAnalysis } = useMatchWorkspaceContext();
     const networkQuery = useMatchNetwork(match.match_id, currentTeamId, { enabled: Boolean(currentAnalysis && currentTeamId) });
+    // Slider threshold state
     const [minPasses, setMinPasses] = useState(1);
     const deferredMinPasses = useDeferredValue(minPasses);
 
+    // Compute edge stats from threshold
     const { maxWeight, visibleEdgeCount } = useMemo(() => {
         const edges = networkQuery.data?.edges ?? [];
         const max = edges.reduce((acc, e) => (e.weight > acc ? e.weight : acc), 0);
@@ -21,6 +24,7 @@ export default function MatchNetworkTab() {
         return { maxWeight: max, visibleEdgeCount: visible };
     }, [deferredMinPasses, networkQuery.data?.edges]);
 
+    // Empty state when no analysis
     if (!currentAnalysis || !currentTeamId || !currentTeamName) {
         return (
             <EmptyState
@@ -35,10 +39,12 @@ export default function MatchNetworkTab() {
         );
     }
 
+    // Loading branch
     if (networkQuery.isLoading) {
         return <LoadingState title="Loading network" description={`Preparing ${currentTeamName}'s pass network.`} compact />;
     }
 
+    // Error branch
     if (networkQuery.isError) {
         return (
             <ErrorState
@@ -49,6 +55,7 @@ export default function MatchNetworkTab() {
         );
     }
 
+    // Derived counts for the chrome
     const totalEdges = networkQuery.data?.edges.length ?? 0;
     const totalNodes = networkQuery.data?.nodes.length ?? 0;
     const sliderMax = Math.max(1, maxWeight);

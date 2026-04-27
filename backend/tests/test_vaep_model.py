@@ -13,6 +13,7 @@ from services.ml.vaep_model import VAEPModel
 
 
 class VAEPModelTests(unittest.TestCase):
+    # Test feature extraction fallback
     def test_extract_features_handles_missing_context_columns(self):
         model = VAEPModel()
         actions_df = pd.DataFrame([
@@ -41,6 +42,7 @@ class VAEPModelTests(unittest.TestCase):
         self.assertEqual(features.loc[0, 'final_goal_diff'], 0)
         self.assertEqual(features.loc[0, 'possession_id'], 0)
 
+    # Test minimal frame VAEP
     def test_calculate_vaep_works_with_minimal_pass_runtime_frame(self):
         model = VAEPModel()
         actions_df = pd.DataFrame([

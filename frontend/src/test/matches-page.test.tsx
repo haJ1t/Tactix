@@ -19,6 +19,7 @@ vi.mock('@/services/matchService', () => ({
 }));
 
 describe('MatchesPage', () => {
+    // Test no auto-analysis on mount
     it('does not auto-run analysis when the page renders', async () => {
         getMatches.mockResolvedValue({
             matches: [

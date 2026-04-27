@@ -24,6 +24,7 @@ export interface TeamDetailsContext {
 export const useTeamDetailsContext = () => useOutletContext<TeamDetailsContext>();
 
 export default function TeamDetailsPage() {
+    // Route and query params
     const { teamId } = useParams<{ teamId: string }>();
     const location = useLocation();
     const [searchParams] = useSearchParams();
@@ -34,15 +35,18 @@ export default function TeamDetailsPage() {
     const availableSeasons = teamSeasonsQuery.data?.entries.map((entry) => entry.season) || [];
     const activeSeason = requestedSeason && availableSeasons.includes(requestedSeason) ? requestedSeason : null;
     const teamQuery = useTeam(normalizedTeamId, activeSeason);
+    // Track manual analysis request
     const [analysisRequested, setAnalysisRequested] = useState(false);
     const teamAnalysisQuery = useTeamAnalysis(normalizedTeamId, activeSeason, {
         includeAnalysis: analysisRequested,
     });
 
+    // Loading branch
     if (teamSeasonsQuery.isLoading) {
         return <LoadingState title="Loading team workspace" description="Preparing available seasons for this team." />;
     }
 
+    // Error or empty seasons branch
     if (teamSeasonsQuery.isError || !teamSeasonsQuery.data || teamSeasonsQuery.data.entries.length === 0) {
         return (
             <ErrorState
@@ -53,6 +57,7 @@ export default function TeamDetailsPage() {
         );
     }
 
+    // Redirect to latest season as default
     if (!activeSeason) {
         return (
             <Navigate
@@ -65,10 +70,12 @@ export default function TeamDetailsPage() {
         );
     }
 
+    // Loading branch for team profile
     if (teamQuery.isLoading || (!teamAnalysisQuery.data && teamAnalysisQuery.isLoading)) {
         return <LoadingState title="Loading team workspace" description="Preparing the team profile and aggregate analysis." />;
     }
 
+    // Error branch
     if (teamQuery.isError || teamAnalysisQuery.isError || !teamQuery.data || !teamAnalysisQuery.data) {
         return (
             <ErrorState
@@ -82,6 +89,7 @@ export default function TeamDetailsPage() {
         );
     }
 
+    // Trigger sample analysis manually
     const seasonSearch = `?season=${encodeURIComponent(activeSeason)}`;
     const requestAnalysis = () => {
         if (analysisRequested) {

@@ -88,40 +88,39 @@ def build_network_features_per_team(passes_df: pd.DataFrame) -> list:
     classifier = TacticalPatternClassifier()
     
     features_list = []
-    
-    # Add required name columns if missing
+
+    # Backfill missing name columns
     if 'passer_name' not in passes_df.columns:
         passes_df['passer_name'] = passes_df['passer_id'].apply(lambda x: f'Player {x}')
     if 'recipient_name' not in passes_df.columns:
         passes_df['recipient_name'] = passes_df['recipient_id'].apply(lambda x: f'Player {x}' if pd.notna(x) else None)
-    
-    # Group by match and team
+
+    # Process each team-match
     grouped = passes_df.groupby(['match_id', 'team_id'])
     total_groups = len(grouped)
-    
+
     for i, ((match_id, team_id), team_passes) in enumerate(grouped):
         if i % 100 == 0:
             print(f"  Processing {i}/{total_groups} team-matches...")
-        
-        # Get successful passes (None outcome = successful in StatsBomb)
-        # Filter: recipient must exist, and outcome is None or 'Complete'
+
+        # Filter successful passes
         mask = (
-            team_passes['recipient_id'].notna() & 
+            team_passes['recipient_id'].notna() &
             (team_passes['pass_outcome'].isna() | (team_passes['pass_outcome'] == 'Complete'))
         )
         successful = team_passes[mask].copy()
-        
+
         if len(successful) < 10:
             continue
-        
-        # Build network
+
+        # Build pass network
         try:
             G = builder.build_pass_network(successful)
-            
+
             if G.number_of_nodes() < 5:
                 continue
-            
-            # Get node positions
+
+            # Collect node positions
             node_positions = {}
             for node in G.nodes():
                 node_data = G.nodes[node]
@@ -129,8 +128,8 @@ def build_network_features_per_team(passes_df: pd.DataFrame) -> list:
                     node_data.get('x', 60),
                     node_data.get('y', 40)
                 )
-            
-            # Extract features
+
+            # Extract network features
             features = classifier.extract_network_features(G, node_positions)
             features['match_id'] = match_id
             features['team_id'] = team_id
@@ -156,8 +155,8 @@ def train_pass_difficulty_model(passes_df: pd.DataFrame) -> dict:
     print(f"  Algorithm: Random Forest")
     print(f"  Samples used: {results['samples_used']:,}")
     print(f"  Accuracy: {results['accuracy']:.2%}")
-    
-    # Save model
+
+    # Persist artifact
     models_dir = 'backend/models/trained'
     os.makedirs(models_dir, exist_ok=True)
     model.save_model(os.path.join(models_dir, 'pass_difficulty.joblib'))
@@ -179,8 +178,8 @@ def train_vaep_model(passes_df: pd.DataFrame) -> dict:
     print(f"  Samples used: {results['samples_used']:,}")
     print(f"  Scoring Accuracy: {results['scoring_accuracy']:.2%}")
     print(f"  Conceding Accuracy: {results['conceding_accuracy']:.2%}")
-    
-    # Save model
+
+    # Persist artifact
     models_dir = 'backend/models/trained'
     model.save_model(os.path.join(models_dir, 'vaep_model.joblib'))
     print(f"  Model saved to {models_dir}/vaep_model.joblib")
@@ -199,13 +198,14 @@ def train_tactical_classifier(features_list: list) -> dict:
         return {'error': 'Not enough data'}
     
     print(f"  Training samples: {len(features_list)}")
-    
-    # Remove metadata columns for training
+
+    # Strip metadata before training
     training_features = []
     for f in features_list:
         clean_f = {k: v for k, v in f.items() if k not in ['match_id', 'team_id', 'pass_count']}
         training_features.append(clean_f)
-    
+
+    # Train classifier with auto pipeline
     classifier = TacticalPatternClassifier()
     results = classifier.auto_train(training_features)
     

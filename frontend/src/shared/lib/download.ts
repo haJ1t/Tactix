@@ -1,3 +1,4 @@
+// Trigger browser file download
 export const downloadTextFile = (content: string, filename: string, type = 'text/plain') => {
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);

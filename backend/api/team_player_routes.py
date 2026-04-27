@@ -68,6 +68,7 @@ def get_team_metrics(team_id: int):
     try:
         match_id = request.args.get('match_id', type=int)
 
+        # Filter metrics by team
         query = db.query(NetworkMetrics).filter(NetworkMetrics.team_id == team_id)
 
         if match_id:

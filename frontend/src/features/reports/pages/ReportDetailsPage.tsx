@@ -16,10 +16,12 @@ export default function ReportDetailsPage() {
     const deleteReportMutation = useDeleteReport();
     const importLegacyMutation = useImportLegacyReport();
 
+    // Loading branch
     if (reportQuery.isLoading) {
         return <LoadingState title="Loading report" description="Preparing the analyst dossier details." compact />;
     }
 
+    // Not found branch
     if (!reportQuery.data) {
         return (
             <EmptyState
@@ -39,6 +41,7 @@ export default function ReportDetailsPage() {
         );
     }
 
+    // Delete then go back
     const deleteAndExit = async () => {
         if (reportQuery.data?.kind !== 'artifact') {
             return;
@@ -48,6 +51,7 @@ export default function ReportDetailsPage() {
         navigate('/reports');
     };
 
+    // Render legacy report variant
     if (reportQuery.data.kind === 'legacy') {
         const report = reportQuery.data.legacy;
 
@@ -130,6 +134,7 @@ export default function ReportDetailsPage() {
         );
     }
 
+    // Backend artifact branch
     const report = reportQuery.data.artifact;
 
     return (

@@ -42,11 +42,13 @@ type TooltipState =
     | { kind: 'node'; clientX: number; clientY: number; data: NodeTooltipData }
     | null;
 
+// Use last name only
 const shortName = (full: string) => {
     const parts = full.trim().split(/\s+/);
     return parts.length > 1 ? parts[parts.length - 1] : full;
 };
 
+// D3 pass network visualisation
 export default function PassNetworkGraph({
     nodes,
     edges,
@@ -70,6 +72,7 @@ export default function PassNetworkGraph({
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
 
+        // Pitch dimensions in metres
         const pitchLengthM = 120;
         const pitchWidthM = 80;
         const margin = { top: 36, right: 36, bottom: 36, left: 36 };
@@ -114,6 +117,7 @@ export default function PassNetworkGraph({
             };
         });
 
+        // Force simulation for layout
         const sim = d3
             .forceSimulation<SimNode>(simNodes)
             .force('x', d3.forceX<SimNode>((d) => d.origX).strength(0.92))

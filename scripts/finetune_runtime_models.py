@@ -318,9 +318,11 @@ def fit_pass_candidate(name: str, X_train: pd.DataFrame, y_train: np.ndarray, X_
 
 def train_pass_difficulty(train_df: pd.DataFrame, holdout_df: pd.DataFrame, previous_report: Dict) -> Dict:
     print("Stage: pass difficulty")
+    # Split for calibration set
     core_df, calib_df = grouped_split(train_df, 0.15)
     core_df = sample_rows(core_df, MAX_PASS_ROWS)
     calib_df = sample_rows(calib_df, max(int(MAX_PASS_ROWS * 0.15), 10_000))
+    # Build pass features
     train_features = build_pass_feature_frame(core_df)
     calib_features = build_pass_feature_frame(calib_df) if not calib_df.empty else pd.DataFrame(columns=train_features.columns)
     holdout_features = build_pass_feature_frame(holdout_df)
@@ -335,7 +337,7 @@ def train_pass_difficulty(train_df: pd.DataFrame, holdout_df: pd.DataFrame, prev
     bucket_calibrators = {}
     leaderboard = []
 
-    # General model uses the full training set.
+    # Train general candidates
     general_results = []
     for candidate_name in ['CatBoost', 'LightGBM']:
         model, calibrator = fit_pass_candidate(candidate_name, train_features, y_train, calib_features, y_cal)
@@ -351,6 +353,7 @@ def train_pass_difficulty(train_df: pd.DataFrame, holdout_df: pd.DataFrame, prev
         'holdout': best_general[3],
     })
 
+    # Train per pass-bucket model
     for bucket_name in ['SHORT', 'MEDIUM', 'LONG', 'CROSS', 'THROUGH_BALL', 'SET_PIECE']:
         train_mask = train_features['pass_bucket'] == bucket_name
         hold_mask = holdout_features['pass_bucket'] == bucket_name
@@ -379,6 +382,7 @@ def train_pass_difficulty(train_df: pd.DataFrame, holdout_df: pd.DataFrame, prev
             'holdout': best_bucket[3],
         })
 
+    # Persist runtime artifact
     runtime_model = PassDifficultyModel()
     runtime_model.model = bucket_models['GENERAL']
     runtime_model.bucket_models = bucket_models
@@ -477,6 +481,7 @@ def evaluate_classifier(model, scaler, X_hold: pd.DataFrame, y_hold: np.ndarray,
 
 def train_tactical_classifier(train_df: pd.DataFrame, holdout_df: pd.DataFrame, previous_report: Dict) -> Dict:
     print("Stage: tactical classifier")
+    # Build silver-labeled dataset
     train_rows = build_tactical_dataset(train_df)
     holdout_rows = build_tactical_dataset(holdout_df)
     silver_export = pd.concat([train_rows.assign(split='train'), holdout_rows.assign(split='holdout')], ignore_index=True)
@@ -489,11 +494,13 @@ def train_tactical_classifier(train_df: pd.DataFrame, holdout_df: pd.DataFrame, 
     X_hold = holdout_rows[feature_cols]
     y_hold_labels = holdout_rows['label'].values
 
+    # Encode labels and weights
     label_encoder = LabelEncoder()
     y_train = label_encoder.fit_transform(y_train_labels)
     y_hold = label_encoder.transform(y_hold_labels)
     sample_weights = compute_sample_weight(class_weight='balanced', y=y_train)
 
+    # Scale numeric features
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_hold_scaled = scaler.transform(X_hold)
@@ -519,10 +526,12 @@ def train_tactical_classifier(train_df: pd.DataFrame, holdout_df: pd.DataFrame, 
         n_jobs=-1,
     )
 
+    # Fit base learners
     base_gb.fit(X_train_scaled, y_train, sample_weight=sample_weights)
     base_xgb.fit(X_train_scaled, y_train, sample_weight=sample_weights)
     base_rf.fit(X_train_scaled, y_train, sample_weight=sample_weights)
 
+    # Soft voting ensemble
     voter = VotingClassifier(
         estimators=[('gb', base_gb), ('xgb', base_xgb), ('rf', base_rf)],
         voting='soft',
@@ -545,6 +554,7 @@ def train_tactical_classifier(train_df: pd.DataFrame, holdout_df: pd.DataFrame, 
         candidate_results.append(('CalibratedEnsemble', metric_pair(y_hold, calibrated_voter.predict(X_hold_scaled), average='weighted')))
     else:
         candidate_results.append(('SoftVotingEnsemble', metric_pair(y_hold, voter.predict(X_hold_scaled), average='weighted')))
+    # Save classifier artifact
     runtime_classifier = TacticalPatternClassifier()
     runtime_classifier.feature_columns = feature_cols
     runtime_classifier.classifier = calibrated_voter if calibrated_voter is not None else voter
@@ -572,11 +582,13 @@ def train_tactical_classifier(train_df: pd.DataFrame, holdout_df: pd.DataFrame, 
 
 def train_vaep(actions_df: pd.DataFrame, previous_report: Dict) -> Dict:
     print("Stage: vaep")
+    # Split and train VAEP
     train_df, holdout_df, holdout_info = split_holdout(actions_df)
     train_df = sample_rows(train_df, MAX_VAEP_ROWS)
     model = VAEPModel()
     train_metrics = model.train(train_df)
 
+    # Score on holdout
     X_hold = model.extract_features(holdout_df)
     y_score_hold, y_concede_hold = model.create_labels(holdout_df)
     holdout_metrics = {
@@ -615,6 +627,7 @@ def main():
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     previous_report = load_previous_report()
 
+    # Load and enrich datasets
     matches_df = load_matches_df()
     team_strength_lookup = build_team_strength_lookup(matches_df)
     actions_df = load_actions_df()
@@ -625,6 +638,7 @@ def main():
     passes_df = attach_match_context(passes_df, matches_df, team_strength_lookup, goals_df)
     train_passes, holdout_passes, holdout_info = split_holdout(passes_df)
 
+    # Run all training stages
     pass_results = train_pass_difficulty(train_passes, holdout_passes, previous_report)
     tactical_results = train_tactical_classifier(train_passes, holdout_passes, previous_report)
     vaep_results = train_vaep(actions_df, previous_report)

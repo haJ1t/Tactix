@@ -9,6 +9,7 @@ interface StatCardProps {
     tone?: 'default' | 'accent' | 'success' | 'warning';
 }
 
+// Color tones for card variants
 const toneConfig = {
     default: { border: 'var(--border-soft)', background: 'var(--surface)' },
     accent: { border: 'rgba(66, 111, 143, 0.28)', background: 'var(--tactical-blue-soft)' },
@@ -16,6 +17,7 @@ const toneConfig = {
     warning: { border: 'rgba(184, 135, 53, 0.28)', background: 'var(--amber-soft)' },
 };
 
+// Single metric display card
 export function StatCard({ label, value, icon, tone = 'default' }: StatCardProps) {
     const config = toneConfig[tone];
 

@@ -16,28 +16,28 @@ STATSBOMB_URL = 'https://github.com/statsbomb/open-data.git'
 def download_statsbomb_data():
     """Download StatsBomb open data using git clone."""
     print("Downloading StatsBomb open data...")
-    
-    # Create data directory
+
+    # Prepare data directory
     os.makedirs(DATA_DIR, exist_ok=True)
-    
-    # Clone destination
+
+    # Set clone destination
     clone_dir = os.path.join(DATA_DIR, 'open-data')
-    
+
     if os.path.exists(clone_dir):
         print(f"Data already exists at {clone_dir}")
         print("To re-download, delete this directory first.")
         return
-    
+
     try:
-        # Clone the repository (shallow clone for speed)
+        # Shallow clone for speed
         subprocess.run([
-            'git', 'clone', '--depth', '1', 
+            'git', 'clone', '--depth', '1',
             STATSBOMB_URL, clone_dir
         ], check=True)
-        
+
         print(f"Successfully downloaded to: {clone_dir}")
-        
-        # Move data folders to expected locations
+
+        # Move data subfolders into place
         source_data = os.path.join(clone_dir, 'data')
         if os.path.exists(source_data):
             for folder in ['competitions', 'matches', 'events', 'lineups']:

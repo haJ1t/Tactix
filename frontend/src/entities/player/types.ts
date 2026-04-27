@@ -1,3 +1,4 @@
+// Basic player record
 export interface Player {
     player_id: number;
     player_name: string;
@@ -6,6 +7,7 @@ export interface Player {
     jersey_number: number;
 }
 
+// Per-match player metrics
 export interface PlayerMetrics {
     metric_id: number;
     match_id: number;

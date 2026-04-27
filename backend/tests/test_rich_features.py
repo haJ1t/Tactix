@@ -13,6 +13,7 @@ from services.ml.rich_features import build_pass_feature_frame, extract_tactical
 
 
 class RichFeaturesTests(unittest.TestCase):
+    # Test feature frame fallback
     def test_build_pass_feature_frame_handles_missing_match_id(self):
         passes_df = pd.DataFrame([
             {
@@ -36,6 +37,7 @@ class RichFeaturesTests(unittest.TestCase):
         self.assertIn('possession_pass_index', features.columns)
         self.assertEqual(features.loc[0, 'possession_pass_index'], 1)
 
+    # Test tactical context fallback
     def test_extract_tactical_context_features_handles_missing_match_id(self):
         passes_df = pd.DataFrame([
             {

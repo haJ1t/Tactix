@@ -274,14 +274,15 @@ def train_with_advanced_features(passes_df: pd.DataFrame, holdout_df: pd.DataFra
     print("TRAINING WITH ADVANCED FEATURES")
     print("="*60)
     
-    # Apply all feature engineering
+    # Run feature pipeline
     df = passes_df.copy()
     df = add_game_state_features(df)
     df = add_pressure_features(df)
     df = add_xg_chain_features(df)
     df = add_sequence_features(df)
     df = add_pass_characteristics(df)
-    
+
+    # Apply same to holdout
     df_hold = None
     if holdout_df is not None and not holdout_df.empty:
         df_hold = holdout_df.copy()
@@ -344,11 +345,11 @@ def train_with_advanced_features(passes_df: pd.DataFrame, holdout_df: pd.DataFra
     if df_hold is not None:
         df_hold = df_hold.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
     
-    # Sample for speed
+    # Subsample for speed
     if len(df) > 100000:
         sample_idx = np.random.choice(len(df), 100000, replace=False)
         df = df.iloc[sample_idx].copy()
-    
+
     y = (df['pass_outcome'].isna() | (df['pass_outcome'] == 'Complete')).astype(int).values
     groups = df['match_id'].values
     
@@ -361,7 +362,7 @@ def train_with_advanced_features(passes_df: pd.DataFrame, holdout_df: pd.DataFra
         )
         return Pipeline([('preprocess', preprocessor), ('model', model)])
     
-    # Train with and without advanced features
+    # Compare basic vs advanced
     model_basic = make_pipeline(lgb.LGBMClassifier(n_estimators=200, max_depth=6, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1))
     model_advanced = make_pipeline(lgb.LGBMClassifier(n_estimators=200, max_depth=8, learning_rate=0.1, random_state=42, n_jobs=-1, verbose=-1))
     
@@ -411,7 +412,7 @@ def train_with_advanced_features(passes_df: pd.DataFrame, holdout_df: pd.DataFra
     # Improvement
     print(f"\n  ✅ Improvement: {(acc_full - acc_basic)*100:.2f}% accuracy, {(f1_full - f1_basic)*100:.2f}% F1")
     
-    # Feature importance
+    # Compute feature importance
     model_advanced.fit(X_full, y)
     clf = model_advanced.named_steps['model']
     pre = model_advanced.named_steps['preprocess']
@@ -443,10 +444,10 @@ def train_with_advanced_features(passes_df: pd.DataFrame, holdout_df: pd.DataFra
         print(f"    Accuracy: {holdout_metrics['accuracy']:.2%}")
         print(f"    F1 Score: {holdout_metrics['f1']:.2%}")
     
-    # Save model
+    # Persist trained artifact
     models_dir = 'backend/models/trained'
     os.makedirs(models_dir, exist_ok=True)
-    
+
     model_data = {
         'model': model_advanced,
         'feature_cols': all_features,

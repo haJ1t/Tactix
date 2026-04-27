@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Swords, Trophy, ExternalLink } from 'lucide-react';
 
 export default function TeamMatchesTab() {
+    // Pull team data from context
     const { matches, team, season } = useTeamDetailsContext();
 
     return (

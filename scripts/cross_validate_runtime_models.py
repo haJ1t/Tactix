@@ -172,6 +172,7 @@ def compare_metric_sets(current: Dict, reference: Dict, f1_key: str) -> Dict:
 
 
 def evaluate_pass(train_df: pd.DataFrame, holdout_df: pd.DataFrame, previous_report: Dict) -> Dict:
+    # Sample and build features
     sampled_train = sample_rows(train_df, PASS_CV_MAX_ROWS)
     features = build_pass_feature_frame(sampled_train)
     y = pass_target(sampled_train).to_numpy()
@@ -182,6 +183,7 @@ def evaluate_pass(train_df: pd.DataFrame, holdout_df: pd.DataFrame, previous_rep
     aggregate_true: List[int] = []
     aggregate_pred: List[int] = []
 
+    # Run grouped CV folds
     for fold_index, (train_idx, test_idx) in enumerate(splitter.split(features, y, groups), start=1):
         fold_train_df = sampled_train.iloc[train_idx].copy()
         fold_test_df = sampled_train.iloc[test_idx].copy()
@@ -200,6 +202,7 @@ def evaluate_pass(train_df: pd.DataFrame, holdout_df: pd.DataFrame, previous_rep
             "match_count": int(fold_test_df["match_id"].nunique()),
         })
 
+    # Final fit and holdout
     full_model, full_calibrator = build_pass_fold_model(train_df)
     holdout_features = build_pass_feature_frame(holdout_df)
     holdout_truth = pass_target(holdout_df).to_numpy()
@@ -358,6 +361,7 @@ def build_report() -> Dict:
     init_db()
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Load source data
     previous_report = load_previous_report()
     matches_df = load_matches_df()
     passes_df = load_passes_df()
@@ -365,6 +369,7 @@ def build_report() -> Dict:
     passes_df = attach_match_context(passes_df, matches_df, team_strength_lookup)
     train_passes, holdout_passes, holdout_info = split_holdout(passes_df)
 
+    # Prepare tactical dataset
     tactical_train_rows = build_tactical_dataset(train_passes)
     tactical_holdout_rows = build_tactical_dataset(holdout_passes)
     train_class_counts = tactical_train_rows["label"].value_counts()

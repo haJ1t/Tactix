@@ -10,9 +10,11 @@ import type {
     TeamStats,
 } from './types';
 
+// Resolve a readable player label
 export const getDisplayPlayerName = (player: Pick<PlayerMetrics, 'player_id' | 'player_name' | 'name'>): string =>
     player.player_name || player.name || `Player ${player.player_id}`;
 
+// Pull team analysis by name
 export const getAnalysisForTeam = (
     analysis: Record<string, TeamAnalysis> | null | undefined,
     teamName?: string | null
@@ -24,6 +26,7 @@ export const getAnalysisForTeam = (
     return analysis[teamName] || null;
 };
 
+// Look up team name by id
 export const getTeamNameById = (match: Match | null, teamId: number | null): string | null => {
     if (!match || !teamId) {
         return null;
@@ -40,11 +43,13 @@ export const getTeamNameById = (match: Match | null, teamId: number | null): str
     return null;
 };
 
+// Get the other team's name
 export const getOpponentName = (match: Match, teamId: number): string => {
     const isHome = match.home_team?.team_id === teamId;
     return isHome ? match.away_team?.team_name || 'Unknown' : match.home_team?.team_name || 'Unknown';
 };
 
+// Compute win/draw/loss result
 export const getMatchResult = (match: Match, teamId: number): 'W' | 'D' | 'L' => {
     const isHome = match.home_team?.team_id === teamId;
     const teamScore = isHome ? match.home_score : match.away_score;
@@ -61,6 +66,7 @@ export const getMatchResult = (match: Match, teamId: number): 'W' | 'D' | 'L' =>
     return 'D';
 };
 
+// Flatten analysis into stat object
 export const getTeamStats = (analysis: TeamAnalysis | null): TeamStats => {
     const stats = analysis?.network_statistics;
     const shots = analysis?.shot_summary;
@@ -85,6 +91,7 @@ export const getTeamStats = (analysis: TeamAnalysis | null): TeamStats => {
     };
 };
 
+// Score players by impact
 export const buildRankedPlayers = (analysis: TeamAnalysis | null, teamName: string): RankedPlayer[] => {
     if (!analysis?.player_metrics) {
         return [];
@@ -102,11 +109,13 @@ export const buildRankedPlayers = (analysis: TeamAnalysis | null, teamName: stri
     });
 };
 
+// Get top N ranked players
 export const getTopPlayers = (analysis: TeamAnalysis | null, teamName: string, count = 5): RankedPlayer[] =>
     buildRankedPlayers(analysis, teamName)
         .sort((first, second) => second.impactScore - first.impactScore)
         .slice(0, count);
 
+// Get top patterns by confidence
 export const getTopPatterns = (analysis: TeamAnalysis | null, count = 4): TacticalPattern[] => {
     if (!analysis?.patterns) {
         return [];
@@ -117,6 +126,7 @@ export const getTopPatterns = (analysis: TeamAnalysis | null, count = 4): Tactic
         .slice(0, count);
 };
 
+// Get top tactics by priority
 export const getTopTactics = (analysis: TeamAnalysis | null, count = 3): CounterTactic[] => {
     if (!analysis?.counter_tactics) {
         return [];
@@ -127,6 +137,7 @@ export const getTopTactics = (analysis: TeamAnalysis | null, count = 3): Counter
         .slice(0, count);
 };
 
+// Build narrative match insights
 export const buildOverviewInsights = ({
     homeStats,
     awayStats,
@@ -232,6 +243,7 @@ export const buildOverviewInsights = ({
     return insights.slice(0, 7);
 };
 
+// Combine season match analyses
 export const aggregateTeamAnalysis = (team: TeamWithMatches, results: TeamAnalysis[]): TeamAggregateAnalysis => {
     if (results.length === 0) {
         return {

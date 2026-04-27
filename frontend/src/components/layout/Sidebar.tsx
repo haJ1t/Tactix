@@ -7,11 +7,13 @@ interface SidebarProps {
 export default function Sidebar({ onNavigate }: SidebarProps) {
     const location = useLocation();
 
+    // Check if route is active
     const isActive = (path: string) => {
         return location.pathname === path ||
             (path === '/dashboard' && location.pathname === '/');
     };
 
+    // Sidebar navigation entries
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
         { path: '/matches', label: 'Matches', icon: MatchesIcon },

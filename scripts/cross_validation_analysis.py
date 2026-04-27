@@ -97,16 +97,16 @@ def cross_validate_pass_difficulty(passes_df: pd.DataFrame, holdout_df: pd.DataF
     print("PASS DIFFICULTY MODEL - CROSS-VALIDATION ANALYSIS")
     print("="*60)
     
-    # Prepare features
+    # Drop incomplete rows
     df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
-    
-    # Calculate pass length
+
+    # Compute pass distance
     df['pass_length'] = np.sqrt(
-        (df['end_location_x'] - df['location_x'])**2 + 
+        (df['end_location_x'] - df['location_x'])**2 +
         (df['end_location_y'] - df['location_y'])**2
     )
-    
-    # Feature engineering
+
+    # Engineer derived features
     df['dx'] = df['end_location_x'] - df['location_x']
     df['dy'] = df['end_location_y'] - df['location_y']
     df['is_forward'] = (df['dx'] > 0).astype(int)
@@ -125,15 +125,15 @@ def cross_validate_pass_difficulty(passes_df: pd.DataFrame, holdout_df: pd.DataF
     print(f"\n  Dataset: {len(X):,} samples, {len(feature_cols)} numeric + {len(cat_cols)} categorical features")
     print(f"  Class distribution: {y.sum():,} successful ({y.mean():.1%}), {(~y.astype(bool)).sum():,} failed ({1-y.mean():.1%})")
     
-    # Sample for CV (100k max for speed)
+    # Subsample for CV speed
     if len(X) > 100000:
         sample_idx = np.random.choice(len(X), 100000, replace=False)
         X = X.iloc[sample_idx]
         y = y.iloc[sample_idx]
         groups = groups[sample_idx]
         print(f"  Sampled to {len(X):,} for faster CV")
-    
-    # Load best parameters from tuning
+
+    # Use tuned hyperparameters
     best_params = {'max_depth': 15, 'min_samples_leaf': 2, 'min_samples_split': 10, 'n_estimators': 200}
     
     preprocessor = ColumnTransformer(
@@ -145,22 +145,22 @@ def cross_validate_pass_difficulty(passes_df: pd.DataFrame, holdout_df: pd.DataF
         ('model', RandomForestClassifier(**best_params, random_state=42, n_jobs=-1))
     ])
     
-    # Stratified K-Fold
+    # Run grouped k-fold CV
     n_folds = 10
     gkf = GroupKFold(n_splits=n_folds)
-    
+
     print(f"\n  Running {n_folds}-Fold Stratified Cross-Validation...")
-    
-    # Collect metrics per fold
+
+    # Track per-fold metrics
     fold_metrics = []
-    
+
     for fold, (train_idx, test_idx) in enumerate(gkf.split(X, y, groups)):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-        
+
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        
+
         fold_metrics.append({
             'fold': fold + 1,
             'accuracy': accuracy_score(y_test, y_pred),
@@ -261,7 +261,7 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame, holdout_df: pd.D
     print("TACTICAL CLASSIFIER - CROSS-VALIDATION ANALYSIS")
     print("="*60)
     
-    # Build network features
+    # Compute team network features
     print("\n  Building network features...")
     builder = NetworkBuilder()
     classifier = TacticalPatternClassifier()
@@ -317,7 +317,7 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame, holdout_df: pd.D
     X = pd.DataFrame(features_list)
     feature_cols = list(X.columns)
     
-    # Encode labels
+    # Encode pattern labels
     le = LabelEncoder()
     y = le.fit_transform(labels)
     class_names = le.classes_
@@ -327,11 +327,11 @@ def cross_validate_tactical_classifier(passes_df: pd.DataFrame, holdout_df: pd.D
         count = (y == i).sum()
         print(f"    {name}: {count} samples ({count/len(y):.1%})")
     
-    # Scale features (fit on train)
+    # Standardize input features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    
-    # Best parameters from tuning
+
+    # Use tuned classifier params
     best_params = {'n_estimators': 150, 'min_samples_split': 5, 'min_samples_leaf': 1, 'max_depth': 3, 'learning_rate': 0.2}
     model = GradientBoostingClassifier(**best_params, random_state=42)
     

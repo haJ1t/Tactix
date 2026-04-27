@@ -8,6 +8,7 @@ interface ErrorStateProps {
     onRetry?: () => void;
 }
 
+// Error message with retry
 export function ErrorState({
     title = 'Something went wrong',
     description = 'The requested data could not be loaded.',

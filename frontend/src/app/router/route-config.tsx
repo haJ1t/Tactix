@@ -2,6 +2,7 @@ import { Suspense, lazy, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { LoadingState } from '@/shared/ui/LoadingState';
 
+// Lazy loaded pages
 const AppShell = lazy(() => import('@/app/layouts/AppShell'));
 const OverviewPage = lazy(() => import('@/features/overview/pages/OverviewPage'));
 const MatchesPage = lazy(() => import('@/features/matches/pages/MatchesPage'));
@@ -21,17 +22,20 @@ const TeamPatternsTab = lazy(() => import('@/features/teams/components/TeamPatte
 const ReportsPage = lazy(() => import('@/features/reports/pages/ReportsPage'));
 const ReportDetailsPage = lazy(() => import('@/features/reports/pages/ReportDetailsPage'));
 
+// Wrap element with suspense fallback
 const withSuspense = (element: ReactNode) => (
     <Suspense fallback={<LoadingState title="Loading view" description="Preparing the next workspace." compact />}>
         {element}
     </Suspense>
 );
 
+// Redirect old match URLs
 function LegacyMatchRedirect() {
     const { matchId } = useParams<{ matchId: string }>();
     return <Navigate to={`/matches/${matchId}/overview`} replace />;
 }
 
+// Redirect old analysis URLs
 function LegacyAnalysisRedirect() {
     const { matchId } = useParams<{ matchId: string }>();
     return <Navigate to={`/matches/${matchId}/overview`} replace />;
@@ -40,15 +44,18 @@ function LegacyAnalysisRedirect() {
 export function AppRoutes() {
     return (
         <Routes>
+            {/* Legacy redirects */}
             <Route path="/" element={<Navigate to="/overview" replace />} />
             <Route path="/dashboard" element={<Navigate to="/overview" replace />} />
             <Route path="/match/:matchId" element={<LegacyMatchRedirect />} />
             <Route path="/analysis/:matchId" element={<LegacyAnalysisRedirect />} />
             <Route path="/metrics" element={<Navigate to="/matches" replace />} />
 
+            {/* Main app shell */}
             <Route element={withSuspense(<AppShell />)}>
                 <Route path="/overview" element={withSuspense(<OverviewPage />)} />
                 <Route path="/matches" element={withSuspense(<MatchesPage />)} />
+                {/* Match workspace tabs */}
                 <Route path="/matches/:matchId" element={withSuspense(<MatchWorkspacePage />)}>
                     <Route index element={<Navigate to="overview" replace />} />
                     <Route path="overview" element={withSuspense(<MatchOverviewTab />)} />
@@ -59,6 +66,7 @@ export function AppRoutes() {
                     <Route path="report" element={withSuspense(<MatchReportTab />)} />
                 </Route>
 
+                {/* Team workspace tabs */}
                 <Route path="/teams" element={withSuspense(<TeamsPage />)} />
                 <Route path="/teams/:teamId" element={withSuspense(<TeamDetailsPage />)}>
                     <Route index element={<Navigate to="overview" replace />} />
@@ -68,10 +76,12 @@ export function AppRoutes() {
                     <Route path="patterns" element={withSuspense(<TeamPatternsTab />)} />
                 </Route>
 
+                {/* Reports section */}
                 <Route path="/reports" element={withSuspense(<ReportsPage />)} />
                 <Route path="/reports/:reportId" element={withSuspense(<ReportDetailsPage />)} />
             </Route>
 
+            {/* Catch-all fallback */}
             <Route path="*" element={<Navigate to="/overview" replace />} />
         </Routes>
     );

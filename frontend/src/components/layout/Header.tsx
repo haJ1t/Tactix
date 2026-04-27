@@ -4,6 +4,7 @@ interface HeaderProps {
 }
 
 export default function Header({ title = "App Name", userName = "User" }: HeaderProps) {
+    // Build initials from name
     const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
     return (

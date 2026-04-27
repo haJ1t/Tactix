@@ -1,5 +1,7 @@
+// Format ratio as percent
 export const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
+// Format match date string
 export const formatMatchDate = (value?: string | null) => {
     if (!value) {
         return 'Unknown date';
@@ -17,6 +19,7 @@ export const formatMatchDate = (value?: string | null) => {
     });
 };
 
+// Format full date and time
 export const formatDateTime = (value?: string | null) => {
     if (!value) {
         return 'Unknown time';
@@ -36,4 +39,5 @@ export const formatDateTime = (value?: string | null) => {
     });
 };
 
+// Get safe first initial
 export const safeInitial = (value?: string | null) => value?.trim().charAt(0).toUpperCase() || '?';

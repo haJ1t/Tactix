@@ -15,6 +15,7 @@ from services.report_pdf_service import ReportPdfService
 
 
 class ReportPdfServiceTests(unittest.TestCase):
+    # Test PDF rendering output
     def test_render_pdf_contains_key_headings_and_match_metadata(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             service = ReportPdfService(output_dir=temp_dir)

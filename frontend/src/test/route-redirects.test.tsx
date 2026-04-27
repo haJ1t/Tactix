@@ -96,6 +96,7 @@ const renderRoutes = (route: string) => {
 };
 
 describe('route redirects', () => {
+    // Test root and dashboard redirects
     it('redirects root and dashboard to overview', () => {
         renderRoutes('/');
         expect(screen.getByTestId('path')).toHaveTextContent('/overview');
@@ -104,16 +105,19 @@ describe('route redirects', () => {
         expect(screen.getAllByTestId('path')[1]).toHaveTextContent('/overview');
     });
 
+    // Test legacy match URL redirects
     it('redirects legacy match routes to the new workspace overview', () => {
         renderRoutes('/match/42');
         expect(screen.getByTestId('path')).toHaveTextContent('/matches/42/overview');
     });
 
+    // Test legacy analysis URL redirects
     it('redirects legacy analysis routes to the new workspace overview', () => {
         renderRoutes('/analysis/77');
         expect(screen.getByTestId('path')).toHaveTextContent('/matches/77/overview');
     });
 
+    // Test metrics redirect
     it('redirects metrics to matches', () => {
         renderRoutes('/metrics');
         expect(screen.getByTestId('path')).toHaveTextContent('/matches');

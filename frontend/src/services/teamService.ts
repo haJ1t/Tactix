@@ -34,6 +34,7 @@ export interface TeamMatchSummary {
     result: 'W' | 'D' | 'L';
 }
 
+// Team API service
 export const teamService = {
     // Get all teams
     async getTeams(): Promise<{ teams: Team[] }> {

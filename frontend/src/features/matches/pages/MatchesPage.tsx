@@ -18,6 +18,7 @@ const getSortBy = (value: string | null): NonNullable<MatchFilters['sortBy']> =>
 
 export default function MatchesPage() {
     const navigate = useNavigate();
+    // Read filter state from URL
     const [searchParams, setSearchParams] = useSearchParams();
     const [visibleLimit, setVisibleLimit] = useState(60);
     const search = searchParams.get('q') || '';
@@ -26,10 +27,12 @@ export default function MatchesPage() {
     const sortBy = getSortBy(searchParams.get('sort'));
     const matchesQuery = useMatches({ search, competition, season, sortBy });
 
+    // Reset pagination on filter change
     useEffect(() => {
         setVisibleLimit(60);
     }, [competition, search, season, sortBy]);
 
+    // Header summary numbers
     const summary = useMemo(
         () => ({
             totalMatches: matchesQuery.data?.total || 0,
@@ -40,6 +43,7 @@ export default function MatchesPage() {
         [matchesQuery.data]
     );
 
+    // Update or remove a URL filter
     const setFilter = (key: string, value: string, defaultValue = '') => {
         const next = new URLSearchParams(searchParams);
 
@@ -52,14 +56,17 @@ export default function MatchesPage() {
         setSearchParams(next, { replace: true });
     };
 
+    // Clear all filters
     const resetFilters = () => {
         setSearchParams({}, { replace: true });
     };
 
+    // Loading branch
     if (matchesQuery.isLoading) {
         return <LoadingState title="Loading matches" description="Preparing the match catalog." />;
     }
 
+    // Error branch
     if (matchesQuery.isError) {
         return (
             <ErrorState
@@ -70,6 +77,7 @@ export default function MatchesPage() {
         );
     }
 
+    // Slice for pagination
     const hasFilters = Boolean(search || competition !== 'all' || season !== 'all' || sortBy !== 'date-desc');
     const visibleMatches = (matchesQuery.data?.matches || []).slice(0, visibleLimit);
     const hasMoreMatches = visibleMatches.length < (matchesQuery.data?.matches.length || 0);

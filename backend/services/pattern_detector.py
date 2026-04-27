@@ -34,51 +34,51 @@ class PatternDetector:
         pass
     
     def detect_all_patterns(
-        self, 
-        G: nx.DiGraph, 
+        self,
+        G: nx.DiGraph,
         metrics: Dict[int, Dict],
         passes_df=None
     ) -> List[Dict]:
         """
         Detect all tactical patterns from the network.
-        
+
         Args:
             G: Pass network graph
             metrics: Player metrics dictionary
             passes_df: Optional DataFrame with pass data for zone analysis
-            
+
         Returns:
             List of detected patterns
         """
         patterns = []
-        
-        # Detect key player dependency
+
+        # Check key player dependency
         key_player_pattern = self._detect_key_player_dependency(G, metrics)
         if key_player_pattern:
             patterns.append(key_player_pattern)
-        
+
         # Detect wing overload
         wing_patterns = self._detect_wing_overload(G, metrics)
         patterns.extend(wing_patterns)
-        
-        # Detect central buildup
+
+        # Check central buildup
         central_pattern = self._detect_central_buildup(G, metrics)
         if central_pattern:
             patterns.append(central_pattern)
-        
+
         # Detect direct play
         direct_pattern = self._detect_direct_play(G, metrics)
         if direct_pattern:
             patterns.append(direct_pattern)
-        
-        # Detect possession recycling
+
+        # Check possession recycling
         recycling_pattern = self._detect_possession_recycling(G, metrics)
         if recycling_pattern:
             patterns.append(recycling_pattern)
-        
-        # Sort by confidence
+
+        # Sort by confidence score
         patterns.sort(key=lambda x: x['confidence_score'], reverse=True)
-        
+
         return patterns
     
     def _detect_key_player_dependency(
@@ -93,19 +93,19 @@ class PatternDetector:
         """
         if not metrics:
             return None
-        
-        # Find player with highest betweenness
+
+        # Find highest betweenness player
         betweenness_values = {
-            pid: m['betweenness_centrality'] 
+            pid: m['betweenness_centrality']
             for pid, m in metrics.items()
         }
-        
+
         if not betweenness_values:
             return None
-        
+
         max_player = max(betweenness_values, key=betweenness_values.get)
         max_betweenness = betweenness_values[max_player]
-        
+
         if max_betweenness > 0.20:  # Threshold for dependency
             confidence = min(max_betweenness * 2.5, 1.0)
             player_name = metrics[max_player].get('name', f'Player {max_player}')
@@ -135,39 +135,39 @@ class PatternDetector:
         Analyzes player positions to find asymmetric wing focus.
         """
         patterns = []
-        
-        # Group players by lateral position
+
+        # Group players by lateral side
         left_players = []
         right_players = []
-        
+
         for pid, m in metrics.items():
             y = m.get('avg_y', 40)
             if y < 30:  # Left side
                 left_players.append(pid)
             elif y > 50:  # Right side
                 right_players.append(pid)
-        
-        # Count total edge weights to each side
+
+        # Sum edge weights per side
         left_weight = 0
         right_weight = 0
         total_weight = 0
-        
+
         for u, v, data in G.edges(data=True):
             weight = data.get('weight', 1)
             total_weight += weight
-            
+
             if v in left_players:
                 left_weight += weight
             elif v in right_players:
                 right_weight += weight
-        
+
         if total_weight == 0:
             return patterns
-        
+
         left_ratio = left_weight / total_weight
         right_ratio = right_weight / total_weight
-        
-        # Detect significant asymmetry
+
+        # Flag asymmetric wing focus
         if left_ratio > 0.40:
             patterns.append({
                 'pattern_type': self.WING_OVERLOAD,
@@ -198,18 +198,18 @@ class PatternDetector:
         
         High centrality among players in central positions.
         """
-        # Find central midfielders (y between 25-55, x between 35-85)
+        # Identify central midfield players
         central_players = []
         total_centrality = 0
-        
+
         for pid, m in metrics.items():
             x = m.get('avg_x', 60)
             y = m.get('avg_y', 40)
-            
+
             if 25 <= y <= 55 and 35 <= x <= 85:
                 central_players.append(pid)
                 total_centrality += m.get('degree_centrality', 0)
-        
+
         if len(central_players) >= 2:
             avg_centrality = total_centrality / len(central_players)
             
@@ -240,11 +240,11 @@ class PatternDetector:
         """
         if G.number_of_nodes() < 3:
             return None
-        
+
         avg_clustering = nx.average_clustering(G)
         density = nx.density(G)
-        
-        # Direct play = low clustering, moderate density
+
+        # Low clustering signals direct
         if avg_clustering < 0.15 and density < 0.5:
             confidence = 1 - avg_clustering  # Lower clustering = more direct
             
@@ -273,16 +273,16 @@ class PatternDetector:
         """
         if G.number_of_nodes() < 3:
             return None
-        
+
         reciprocity = nx.reciprocity(G)
-        
-        # Find defensive players (low x position)
+
+        # Pick defensive players by position
         defensive_players = [
             pid for pid, m in metrics.items()
             if m.get('avg_x', 60) < 45
         ]
-        
-        # Check clustering among defensive players
+
+        # Check defensive clustering
         if len(defensive_players) >= 2:
             subgraph = G.subgraph(defensive_players)
             if subgraph.number_of_edges() > 0:

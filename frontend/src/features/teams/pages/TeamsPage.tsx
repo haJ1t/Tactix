@@ -14,11 +14,13 @@ const getSegment = (value: string | null): TeamSegment =>
 
 export default function TeamsPage() {
     const navigate = useNavigate();
+    // Read filter state from URL
     const [searchParams, setSearchParams] = useSearchParams();
     const search = searchParams.get('q') || '';
     const segment = getSegment(searchParams.get('segment'));
     const teamsQuery = useTeams({ search, segment });
 
+    // Persist filter changes to URL
     const setFilter = (key: string, value: string, defaultValue = '') => {
         const next = new URLSearchParams(searchParams);
 
@@ -31,14 +33,17 @@ export default function TeamsPage() {
         setSearchParams(next, { replace: true });
     };
 
+    // Clear all filters
     const resetFilters = () => {
         setSearchParams({}, { replace: true });
     };
 
+    // Loading branch
     if (teamsQuery.isLoading) {
         return <LoadingState title="Loading teams" description="Preparing season-scoped team entries." />;
     }
 
+    // Error branch
     if (teamsQuery.isError) {
         return (
             <ErrorState

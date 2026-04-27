@@ -71,6 +71,7 @@ def main():
 
     db = SessionLocal()
     try:
+        # Pull existing match IDs
         match_ids = [row[0] for row in db.execute(select(Match.match_id)).all()]
         print(f"Backfilling enriched fields for {len(match_ids)} loaded matches...")
 
@@ -83,15 +84,18 @@ def main():
             if not events:
                 continue
 
+            # Refresh player positions
             lineups = parser.parse_lineups(match_id)
             update_player_positions(db, lineups)
 
+            # Build lookup tables
             event_map = {event['event_id']: event for event in events}
             pass_map = {
                 pass_row['pass_id']: pass_row
                 for pass_row in parser.extract_passes(events)
             }
 
+            # Update event rows
             db_events = db.execute(
                 select(Event).where(Event.match_id == match_id)
             ).scalars().all()
@@ -111,6 +115,7 @@ def main():
                 event_row.is_goal = payload.get('is_goal')
                 updated_events += 1
 
+            # Update pass rows
             db_passes = db.execute(
                 select(PassEvent).join(Event).where(Event.match_id == match_id)
             ).scalars().all()

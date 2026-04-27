@@ -10,6 +10,7 @@ export default function MatchReportTab() {
     const { match, analysis, runAnalysis, isRunningAnalysis } = useMatchWorkspaceContext();
     const generateReportMutation = useGenerateReport();
 
+    // Show empty state without analysis
     if (!analysis) {
         return (
             <EmptyState
@@ -24,6 +25,7 @@ export default function MatchReportTab() {
         );
     }
 
+    // Trigger report creation
     const generateReport = async () => {
         const created = await generateReportMutation.mutateAsync(match.match_id);
         navigate(`/reports/${created.id}`);

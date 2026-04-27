@@ -74,14 +74,15 @@ def train_pass_difficulty_with_smote(passes_df: pd.DataFrame, holdout_df: pd.Dat
     print("PASS DIFFICULTY - SMOTE FOR CLASS IMBALANCE")
     print("="*60)
     
-    # Prepare features
+    # Drop incomplete rows
     df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
-    
+
+    # Compute pass features
     df['pass_length'] = np.sqrt(
-        (df['end_location_x'] - df['location_x'])**2 + 
+        (df['end_location_x'] - df['location_x'])**2 +
         (df['end_location_y'] - df['location_y'])**2
     )
-    
+
     df['dx'] = df['end_location_x'] - df['location_x']
     df['dy'] = df['end_location_y'] - df['location_y']
     df['is_forward'] = (df['dx'] > 0).astype(int)
@@ -110,7 +111,7 @@ def train_pass_difficulty_with_smote(passes_df: pd.DataFrame, holdout_df: pd.Dat
     print(f"    Class 1 (Success): {(y == 1).sum():,} ({(y == 1).mean():.1%})")
     print(f"    Imbalance ratio: {(y == 1).sum() / (y == 0).sum():.1f}:1")
     
-    # Compare different techniques
+    # Define resampling candidates
     techniques = {
         'No Resampling': None,
         'SMOTE': SMOTE(random_state=42),
@@ -133,21 +134,23 @@ def train_pass_difficulty_with_smote(passes_df: pd.DataFrame, holdout_df: pd.Dat
         acc_scores = []
         f1_0_scores = []
         f1_1_scores = []
-        
+
+        # Run grouped CV folds
         for train_idx, test_idx in gkf.split(X_df, y, groups):
             X_train_df, X_test_df = X_df.iloc[train_idx], X_df.iloc[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
-            
+
             encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
             X_train_cat = encoder.fit_transform(X_train_df[cat_cols])
             X_test_cat = encoder.transform(X_test_df[cat_cols])
-            
+
             X_train_num = X_train_df[num_cols].fillna(0).values
             X_test_num = X_test_df[num_cols].fillna(0).values
-            
+
             X_train = np.hstack([X_train_num, X_train_cat])
             X_test = np.hstack([X_test_num, X_test_cat])
-            
+
+            # Resample minority class
             if sampler:
                 X_train_res, y_train_res = sampler.fit_resample(X_train, y_train)
             else:
@@ -176,7 +179,7 @@ def train_pass_difficulty_with_smote(passes_df: pd.DataFrame, holdout_df: pd.Dat
     print(f"\n  ✅ Best technique for minority class: {best_technique}")
     print(f"     Minority (Failed) F1: {results[best_technique]['f1_failed']:.2%}")
     
-    # Train final model with best technique
+    # Refit with chosen sampler
     encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
     X_cat = encoder.fit_transform(X_df[cat_cols])
     X_num = X_df[num_cols].fillna(0).values
@@ -321,7 +324,7 @@ def train_tactical_classifier_with_smote(passes_df: pd.DataFrame, holdout_df: pd
         class_name = le.inverse_transform([cls_id])[0]
         print(f"    {class_name}: {count} ({count/len(y):.1%})")
     
-    # SMOTE for multi-class
+    # Apply multi-class SMOTE
     print("\n  Applying SMOTE for multi-class...")
     smote = SMOTE(random_state=42, k_neighbors=min(5, min(counts) - 1))
     
@@ -337,20 +340,20 @@ def train_tactical_classifier_with_smote(passes_df: pd.DataFrame, holdout_df: pd
         print("  Using class weights instead...")
         X_res, y_res = X_scaled, y
     
-    # Train with and without SMOTE
+    # Compare with and without SMOTE
     model_no_smote = lgb.LGBMClassifier(n_estimators=200, max_depth=4, learning_rate=0.15, random_state=42, n_jobs=-1, verbose=-1)
     model_smote = lgb.LGBMClassifier(n_estimators=200, max_depth=4, learning_rate=0.15, random_state=42, n_jobs=-1, verbose=-1)
-    
+
     gkf = GroupKFold(n_splits=5)
-    
-    # Without SMOTE
+
+    # Baseline without resampling
     acc_no_smote = cross_val_score(model_no_smote, X_scaled, y, cv=gkf, groups=groups, scoring='accuracy').mean()
     f1_no_smote = cross_val_score(model_no_smote, X_scaled, y, cv=gkf, groups=groups, scoring='f1_weighted').mean()
-    
-    # With SMOTE (resample in each fold)
+
+    # SMOTE inside each fold
     acc_smote_scores = []
     f1_smote_scores = []
-    
+
     for train_idx, test_idx in gkf.split(X_scaled, y, groups):
         X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]

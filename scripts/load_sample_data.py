@@ -38,20 +38,18 @@ def load_sample_match(competition_id: int = None, season_id: int = None, match_i
     """
     competition_id = competition_id or DEFAULT_COMPETITION_ID
     season_id = season_id or DEFAULT_SEASON_ID
-    
-    # Initialize database
+
+    # Setup database and parser
     init_db()
-    
-    # Create parser
+
     parser = StatsBombParser(DATA_DIR)
-    
-    # Get matches for competition/season
+
     print(f"Loading matches for competition {competition_id}, season {season_id}...")
-    
+
     matches = parser.parse_matches(competition_id, season_id)
-    
+
+    # Try fallback path
     if not matches:
-        # Try open-data subdirectory
         alt_data_dir = os.path.join(DATA_DIR, 'open-data', 'data')
         if os.path.exists(alt_data_dir):
             parser = StatsBombParser(alt_data_dir)
@@ -76,17 +74,17 @@ def load_sample_match(competition_id: int = None, season_id: int = None, match_i
     db = SessionLocal()
     
     try:
-        # Check if match already exists
+        # Skip duplicates
         existing = db.query(Match).filter(Match.match_id == match_id).first()
         if existing:
             print(f"\nMatch {match_id} already loaded. Skipping...")
             return match_id
-        
-        # Create teams
+
+        # Upsert team records
         home_team = get_or_create_team(db, match_data['home_team_id'], match_data['home_team_name'])
         away_team = get_or_create_team(db, match_data['away_team_id'], match_data['away_team_name'])
-        
-        # Create match
+
+        # Insert match record
         match = Match(
             match_id=match_id,
             home_team_id=home_team.team_id,
@@ -127,10 +125,10 @@ def load_sample_match(competition_id: int = None, season_id: int = None, match_i
         passes = parser.extract_passes(events)
         print(f"  Found {len(events)} events, {len(passes)} passes")
         
-        # Create event and pass records
+        # Insert events and passes
         pass_count = 0
         for event_data in events:
-            # Create or update player if not in lineups
+            # Ensure player exists
             if event_data.get('player_id'):
                 player_data = {
                     'player_id': event_data['player_id'],
@@ -169,7 +167,7 @@ def load_sample_match(competition_id: int = None, season_id: int = None, match_i
         
         db.flush()
         
-        # Create pass records
+        # Insert pass rows
         for pass_data in passes:
             # Ensure recipient exists
             if pass_data.get('recipient_id'):

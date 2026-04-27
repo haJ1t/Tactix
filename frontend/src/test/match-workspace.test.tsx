@@ -42,6 +42,7 @@ const renderWorkspace = (route = '/matches/1/overview') => {
 };
 
 describe('MatchWorkspacePage', () => {
+    // Test manual analysis trigger flow
     it('shows a manual run-analysis state and reuses the result after triggering analysis', async () => {
         getMatch.mockResolvedValue({
             match_id: 1,

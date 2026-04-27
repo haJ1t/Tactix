@@ -5,6 +5,7 @@ interface CounterTacticPanelProps {
 }
 
 export default function CounterTacticPanel({ tactics }: CounterTacticPanelProps) {
+    // Empty state branch
     if (tactics.length === 0) {
         return (
             <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
@@ -18,7 +19,7 @@ export default function CounterTacticPanel({ tactics }: CounterTacticPanelProps)
         );
     }
 
-    // Group by priority
+    // Split tactics by priority
     const highPriority = tactics.filter(t => t.priority === 1);
     const mediumPriority = tactics.filter(t => t.priority === 2);
     const lowPriority = tactics.filter(t => t.priority === 3);
@@ -70,12 +71,14 @@ function TacticGroup({
     color: 'red' | 'yellow' | 'green';
     icon: string;
 }) {
+    // Pick border color by priority
     const borderColor = {
         red: 'border-red-500/50',
         yellow: 'border-yellow-500/50',
         green: 'border-green-500/50',
     }[color];
 
+    // Matching background tint
     const bgColor = {
         red: 'bg-red-500/10',
         yellow: 'bg-yellow-500/10',
@@ -117,6 +120,7 @@ function TacticGroup({
 }
 
 function TacticIcon({ type }: { type: string }) {
+    // Icon mapping per tactic type
     const icons: Record<string, string> = {
         MAN_MARK: '👤',
         PRESS: '⚡',

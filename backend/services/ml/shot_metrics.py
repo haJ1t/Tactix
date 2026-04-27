@@ -57,6 +57,7 @@ def calculate_shot_summary(shots_df: pd.DataFrame) -> Dict:
     angles = []
     xgs = []
 
+    # Compute xG per shot
     for _, row in valid.iterrows():
         x = float(row['location_x'])
         y = float(row['location_y'])
@@ -81,6 +82,7 @@ def calculate_shot_summary(shots_df: pd.DataFrame) -> Dict:
             'high_xg_shots': 0
         }
 
+    # Aggregate totals
     xg_total = sum(xgs)
     high_xg_shots = sum(1 for value in xgs if value >= 0.2)
 

@@ -11,9 +11,11 @@ interface TabsProps {
     items: TabItem[];
 }
 
+// Animated tab navigation
 export function Tabs({ items }: TabsProps) {
     const location = useLocation();
 
+    // Resolve tab path string
     const getPath = (to: To): string => {
         if (typeof to === 'string') return to;
         return to.pathname || '';

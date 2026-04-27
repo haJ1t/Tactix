@@ -197,6 +197,7 @@ class AnalyzeMatchMLRouteTests(unittest.TestCase):
         FakePipeline.init_count = 0
         FakePipeline.last_frames = []
 
+    # Test shot summary with shots
     def test_analyze_ml_returns_shot_summary_when_shots_exist(self):
         session = FakeSession({
             Match: [build_match()],
@@ -219,6 +220,7 @@ class AnalyzeMatchMLRouteTests(unittest.TestCase):
         self.assertTrue(FakePipeline.last_frames)
         self.assertIn('match_id', FakePipeline.last_frames[0].columns)
 
+    # Test empty shot summary
     def test_analyze_ml_returns_zero_shot_summary_when_no_shots_exist(self):
         session = FakeSession({
             Match: [build_match()],
@@ -238,6 +240,7 @@ class AnalyzeMatchMLRouteTests(unittest.TestCase):
         self.assertEqual(shot_summary['total_shots'], 0)
         self.assertEqual(shot_summary['xg_total'], 0.0)
 
+    # Test missing pass data
     def test_analyze_ml_returns_error_and_shot_summary_when_no_passes_exist(self):
         session = FakeSession({
             Match: [build_match()],
@@ -258,6 +261,7 @@ class AnalyzeMatchMLRouteTests(unittest.TestCase):
         self.assertIn('shot_summary', team_payload)
         self.assertEqual(team_payload['shot_summary']['total_shots'], 1)
 
+    # Test pipeline caching
     def test_ml_pipeline_is_cached_across_requests(self):
         session = FakeSession({
             Match: [build_match()],

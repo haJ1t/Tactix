@@ -231,13 +231,14 @@ class CounterTacticGenerator:
             (pid, m) for pid, m in metrics.items()
             if 25 <= m.get('avg_y', 40) <= 55 and 35 <= m.get('avg_x', 60) <= 85
         ]
-        
+
         if central_players:
             # Sort by betweenness
             central_players.sort(
-                key=lambda x: x[1].get('betweenness_centrality', 0), 
+                key=lambda x: x[1].get('betweenness_centrality', 0),
                 reverse=True
             )
+            # Pick the most central
             top_central = central_players[0]
             
             tactics.append({
@@ -293,10 +294,11 @@ class CounterTacticGenerator:
             (pid, m) for pid, m in metrics.items()
             if m.get('avg_x', 60) > 70 and m.get('in_degree_centrality', 0) > 0.15
         ]
-        
+
         if target_men:
+            # Sort by in-degree
             target_men.sort(
-                key=lambda x: x[1].get('in_degree_centrality', 0), 
+                key=lambda x: x[1].get('in_degree_centrality', 0),
                 reverse=True
             )
             target = target_men[0]

@@ -68,6 +68,7 @@ def create_report():
     try:
         payload = request.get_json() or {}
         match_id = payload.get('match_id')
+        # Require match_id field
         if not match_id:
             return jsonify({'error': 'match_id is required'}), 400
 

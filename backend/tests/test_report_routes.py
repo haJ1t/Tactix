@@ -115,6 +115,7 @@ class ReportRoutesTests(unittest.TestCase):
         session.commit()
         session.close()
 
+    # Test full report lifecycle
     def test_create_list_detail_download_and_delete_report_artifact(self):
         create_response = self.client.post('/api/reports', json={'match_id': 3943043})
         self.assertEqual(create_response.status_code, 201)
@@ -145,6 +146,7 @@ class ReportRoutesTests(unittest.TestCase):
         self.assertEqual(session.query(ReportArtifact).count(), 0)
         session.close()
 
+    # Test legacy report import
     def test_import_legacy_report_creates_backend_pdf_artifact(self):
         payload = {
             'legacy_report': {

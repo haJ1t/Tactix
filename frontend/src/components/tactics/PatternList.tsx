@@ -5,6 +5,7 @@ interface PatternListProps {
 }
 
 export default function PatternList({ patterns }: PatternListProps) {
+    // Empty state branch
     if (patterns.length === 0) {
         return (
             <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
@@ -33,6 +34,7 @@ export default function PatternList({ patterns }: PatternListProps) {
 }
 
 function PatternCard({ pattern }: { pattern: TacticalPattern }) {
+    // Icons for each pattern type
     const patternIcons: Record<string, string> = {
         KEY_PLAYER_DEPENDENCY: '⭐',
         WING_OVERLOAD: '↔️',
@@ -42,6 +44,7 @@ function PatternCard({ pattern }: { pattern: TacticalPattern }) {
         ASYMMETRIC_PLAY: '↗️',
     };
 
+    // Gradient colors per pattern
     const patternColors: Record<string, string> = {
         KEY_PLAYER_DEPENDENCY: 'from-purple-500 to-purple-600',
         WING_OVERLOAD: 'from-blue-500 to-blue-600',
@@ -51,6 +54,7 @@ function PatternCard({ pattern }: { pattern: TacticalPattern }) {
         ASYMMETRIC_PLAY: 'from-pink-500 to-pink-600',
     };
 
+    // Resolve display values
     const icon = patternIcons[pattern.pattern_type] || '📊';
     const gradient = patternColors[pattern.pattern_type] || 'from-gray-500 to-gray-600';
     const confidencePercent = Math.round(pattern.confidence_score * 100);

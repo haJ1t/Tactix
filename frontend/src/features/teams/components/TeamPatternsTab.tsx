@@ -4,9 +4,11 @@ import { FadeInUp, GlassCard, StaggerContainer, StaggerItem, ShimmerButton } fro
 import { Shapes, Lightbulb } from 'lucide-react';
 
 export default function TeamPatternsTab() {
+    // Pull team context
     const { aggregateAnalysis, season, analyzedMatches, analysisRequested, isAnalysisPending, requestAnalysis } =
         useTeamDetailsContext();
 
+    // Empty state branch
     if (analyzedMatches === 0) {
         return (
             <EmptyState

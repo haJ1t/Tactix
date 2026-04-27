@@ -16,11 +16,12 @@ function getPlayerName(player: PlayerMetrics): string {
 }
 
 export default function MetricsCards({ metrics, networkStats }: MetricsCardsProps) {
-    // Get top players by different metrics
+    // Top three by betweenness
     const topByBetweenness = [...metrics]
         .sort((a, b) => b.betweenness_centrality - a.betweenness_centrality)
         .slice(0, 3);
 
+    // Top three by PageRank
     const topByPageRank = [...metrics]
         .sort((a, b) => b.pagerank - a.pagerank)
         .slice(0, 3);
@@ -109,6 +110,7 @@ function PlayerRow({
     maxValue: number;
     color: 'green' | 'blue';
 }) {
+    // Bar width as percentage
     const percentage = (value / maxValue) * 100;
     const bgColor = color === 'green' ? 'bg-green-500' : 'bg-blue-500';
 

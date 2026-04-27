@@ -1,5 +1,6 @@
 import type { Team } from '@/entities/team';
 
+// Single fixture record
 export interface Match {
     match_id: number;
     home_team: Team | null;
@@ -11,6 +12,7 @@ export interface Match {
     away_score: number;
 }
 
+// Match list filter options
 export interface MatchFilters {
     search?: string;
     competition?: string;

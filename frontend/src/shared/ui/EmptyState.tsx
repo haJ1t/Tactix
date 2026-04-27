@@ -8,6 +8,7 @@ interface EmptyStateProps {
     action?: ReactNode;
 }
 
+// Empty placeholder card
 export function EmptyState({ title, description, icon, action }: EmptyStateProps) {
     return (
         <motion.div

@@ -1,11 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 
+// Mock IntersectionObserver for jsdom
 class MockIntersectionObserver {
     observe() {}
     unobserve() {}
     disconnect() {}
 }
 
+// In-memory localStorage mock
 const storage = new Map<string, string>();
 
 const localStorageMock = {

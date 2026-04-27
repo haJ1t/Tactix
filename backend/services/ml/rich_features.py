@@ -104,12 +104,14 @@ def assign_pass_bucket(passes_df: pd.DataFrame) -> pd.Series:
     is_through = _safe_bool(passes_df, 'is_through_ball').astype(bool)
     distance = _safe_numeric(passes_df, 'pass_length', 0)
 
+    # Detect set piece passes
     set_piece_mask = (
         pass_types.str.contains('corner|free kick|goal kick|kick off|throw', case=False, na=False)
         | play_patterns.str.contains('from throw|free kick|corner|kick off', case=False, na=False)
         | technique.str.contains('set piece', case=False, na=False)
     )
 
+    # Assign bucket by distance/type
     bucket = pd.Series('MEDIUM', index=passes_df.index)
     bucket[distance < 10] = 'SHORT'
     bucket[distance >= 25] = 'LONG'
@@ -133,6 +135,7 @@ def build_pass_feature_frame(passes_df: pd.DataFrame) -> pd.DataFrame:
     end_y = _safe_numeric(df, 'end_location_y', 40)
     position_name = _safe_text(df, 'position_name', 'Unknown')
 
+    # Compute geometric features
     features = pd.DataFrame(index=df.index)
     features['distance'] = np.sqrt((end_x - start_x) ** 2 + (end_y - start_y) ** 2)
     features['forward_distance'] = end_x - start_x
@@ -142,6 +145,7 @@ def build_pass_feature_frame(passes_df: pd.DataFrame) -> pd.DataFrame:
     features['is_progressive'] = (features['forward_distance'] > 10).astype(int)
     features['into_box'] = ((end_x > 102) & (end_y > 18) & (end_y < 62)).astype(int)
     features['angle'] = np.arctan2(end_y - start_y, end_x - start_x)
+    # Distance to goal calculations
     features['start_dist_goal'] = np.sqrt((120 - start_x) ** 2 + (40 - start_y) ** 2)
     features['end_dist_goal'] = np.sqrt((120 - end_x) ** 2 + (40 - end_y) ** 2)
     features['goal_progress'] = features['start_dist_goal'] - features['end_dist_goal']

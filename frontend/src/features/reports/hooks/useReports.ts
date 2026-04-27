@@ -6,19 +6,23 @@ import type { LegacyStoredReport, ReportArtifactDetails, ReportDetailsResult, Re
 import { queryKeys } from '@/shared/api/queryKeys';
 import { getStoredReport, readStoredReports } from '@/shared/lib/reports-storage';
 
+// Combined hook for backend and legacy reports
 export const useReports = () => {
+    // Backend-stored PDF reports
     const generatedQuery = useQuery({
         queryKey: queryKeys.reports(),
         queryFn: () => reportService.listReports(),
         initialData: [],
     });
 
+    // Browser-saved legacy reports
     const legacyQuery = useQuery({
         queryKey: queryKeys.legacyReports(),
         queryFn: async () => readStoredReports(),
         initialData: [],
     });
 
+    // Merge sources into one list
     const data = useMemo<ReportListItem[]>(
         () => buildReportListItems(generatedQuery.data || [], legacyQuery.data || []),
         [generatedQuery.data, legacyQuery.data]
@@ -38,6 +42,7 @@ export const useReports = () => {
     };
 };
 
+// Fetch one report (artifact or legacy)
 export const useReport = (reportId: string | null) => {
     const artifactQuery = useQuery({
         queryKey: reportId ? queryKeys.report(reportId) : ['report', 'empty'],
@@ -51,6 +56,7 @@ export const useReport = (reportId: string | null) => {
         enabled: Boolean(reportId),
     });
 
+    // Prefer artifact, fall back to legacy
     const data = useMemo<ReportDetailsResult | null>(() => {
         if (artifactQuery.data) {
             return { kind: 'artifact', artifact: artifactQuery.data as ReportArtifactDetails };
@@ -72,6 +78,7 @@ export const useReport = (reportId: string | null) => {
     };
 };
 
+// Generate a new backend report
 export const useGenerateReport = () => {
     const queryClient = useQueryClient();
 
@@ -84,6 +91,7 @@ export const useGenerateReport = () => {
     });
 };
 
+// Convert legacy report into backend artifact
 export const useImportLegacyReport = () => {
     const queryClient = useQueryClient();
 
@@ -96,6 +104,7 @@ export const useImportLegacyReport = () => {
     });
 };
 
+// Delete a backend report
 export const useDeleteReport = () => {
     const queryClient = useQueryClient();
 

@@ -38,38 +38,38 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
     
     parser = StatsBombParser(data_dir)
     db = SessionLocal()
-    
+
     try:
-        # Get matches for La Liga 2020/2021
+        # Locate season match file
         matches_file = os.path.join(data_dir, 'matches', str(competition_id), f'{season_id}.json')
-        
+
         if not os.path.exists(matches_file):
             print(f"Matches file not found: {matches_file}")
             return []
-        
+
         with open(matches_file, 'r') as f:
             matches_data = json.load(f)
-        
+
         loaded_match_ids = []
         all_passes_data = []
-        
+
         for i, match_info in enumerate(matches_data[:max_matches]):
             match_id = match_info['match_id']
-            
-            # Check if already loaded
+
+            # Skip duplicates
             existing = db.query(Match).filter(Match.match_id == match_id).first()
             if existing:
                 print(f"Match {match_id} already exists, skipping...")
                 loaded_match_ids.append(match_id)
                 continue
-            
+
             print(f"\n[{i+1}/{max_matches}] Loading match {match_id}...")
-            
-            # Get teams
+
+            # Read team payloads
             home_team_data = match_info['home_team']
             away_team_data = match_info['away_team']
-            
-            # Create/get home team
+
+            # Upsert home team
             home_team = db.query(Team).filter(Team.team_id == home_team_data['home_team_id']).first()
             if not home_team:
                 home_team = Team(
@@ -78,7 +78,7 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                 )
                 db.add(home_team)
             
-            # Create/get away team
+            # Upsert away team
             away_team = db.query(Team).filter(Team.team_id == away_team_data['away_team_id']).first()
             if not away_team:
                 away_team = Team(
@@ -88,8 +88,8 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                 db.add(away_team)
             
             db.flush()
-            
-            # Create match - parse date string to date object
+
+            # Insert match record
             match = Match(
                 match_id=match_id,
                 home_team_id=home_team_data['home_team_id'],
@@ -102,8 +102,8 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
             )
             db.add(match)
             db.flush()
-            
-            # Load lineups
+
+            # Load lineups for this match
             lineups_file = os.path.join(data_dir, 'lineups', f'{match_id}.json')
             if os.path.exists(lineups_file):
                 with open(lineups_file, 'r') as f:
@@ -125,8 +125,8 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                             db.add(player)
             
             db.flush()
-            
-            # Load events
+
+            # Load and parse events
             events_file = os.path.join(data_dir, 'events', f'{match_id}.json')
             if os.path.exists(events_file):
                 with open(events_file, 'r') as f:
@@ -135,8 +135,8 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                 pass_count = 0
                 for event_data in events_data:
                     event_type = event_data.get('type', {}).get('name', '')
-                    
-                    # Create event
+
+                    # Insert event row
                     location = event_data.get('location', [None, None])
                     event = Event(
                         event_id=event_data['id'],
@@ -161,8 +161,8 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                         is_goal=event_data.get('shot', {}).get('outcome', {}).get('name') == 'Goal'
                     )
                     db.add(event)
-                    
-                    # Create pass event if applicable
+
+                    # Insert pass row if applicable
                     if event_type == 'Pass' and 'pass' in event_data:
                         pass_data = event_data['pass']
                         end_location = pass_data.get('end_location', [None, None])
@@ -187,8 +187,8 @@ def load_multiple_matches(data_dir: str, competition_id: int = 11, season_id: in
                         )
                         db.add(pass_event)
                         pass_count += 1
-                        
-                        # Collect for training
+
+                        # Buffer for ML training
                         all_passes_data.append({
                             'match_id': match_id,
                             'event_id': event_data['id'],
@@ -242,7 +242,7 @@ def train_ml_models(passes_df: pd.DataFrame):
     models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend', 'models', 'trained')
     os.makedirs(models_dir, exist_ok=True)
     
-    # 1. Train Pass Difficulty Model
+    # Train pass difficulty model
     print("\n[1/3] Training Pass Difficulty Model (Random Forest)...")
     pass_model = PassDifficultyModel()
     pass_results = pass_model.train(passes_df)
@@ -250,8 +250,8 @@ def train_ml_models(passes_df: pd.DataFrame):
     print(f"  Samples used: {pass_results['samples_used']}")
     pass_model.save_model(os.path.join(models_dir, 'pass_difficulty.joblib'))
     print("  Model saved!")
-    
-    # 2. Train VAEP Model
+
+    # Train VAEP model
     print("\n[2/3] Training VAEP Model (Gradient Boosting)...")
     vaep_model = VAEPModel()
     vaep_results = vaep_model.train(passes_df)
@@ -260,8 +260,8 @@ def train_ml_models(passes_df: pd.DataFrame):
     print(f"  Samples used: {vaep_results['samples_used']}")
     vaep_model.save_model(os.path.join(models_dir, 'vaep_model.joblib'))
     print("  Model saved!")
-    
-    # 3. Initialize Tactical Classifier (will use rule-based + clustering)
+
+    # Initialize tactical classifier
     print("\n[3/3] Initializing Tactical Pattern Classifier...")
     pattern_classifier = TacticalPatternClassifier()
     pattern_classifier.save_model(os.path.join(models_dir, 'tactical_classifier.joblib'))

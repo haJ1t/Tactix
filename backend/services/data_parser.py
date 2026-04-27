@@ -141,6 +141,7 @@ class StatsBombParser:
         # Add pass-specific data if this is a pass event
         if event['type']['name'] == 'Pass':
             pass_data = event.get('pass', {})
+            # Default coords when missing
             end_location = pass_data.get('end_location', [None, None])
             
             transformed['pass_data'] = {
@@ -186,7 +187,8 @@ class StatsBombParser:
         for team_data in lineups:
             team_id = team_data['team_id']
             players = []
-            
+
+            # Build per-team player list
             for player in team_data.get('lineup', []):
                 players.append({
                     'player_id': player['player_id'],
@@ -195,7 +197,7 @@ class StatsBombParser:
                     'team_id': team_id,
                     'position': self._get_position(player)
                 })
-            
+
             result[team_id] = players
         
         return result

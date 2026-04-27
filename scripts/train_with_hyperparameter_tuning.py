@@ -81,17 +81,17 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame, holdout_df: pd.Da
     print("PASS DIFFICULTY MODEL - HYPERPARAMETER TUNING")
     print("="*60)
     
-    # Prepare features
+    # Drop incomplete rows
     df = passes_df.dropna(subset=['location_x', 'location_y', 'end_location_x', 'end_location_y'])
-    
-    # Calculate pass length if missing
+
+    # Compute missing length values
     if 'pass_length' not in df.columns or df['pass_length'].isna().all():
         df['pass_length'] = np.sqrt(
-            (df['end_location_x'] - df['location_x'])**2 + 
+            (df['end_location_x'] - df['location_x'])**2 +
             (df['end_location_y'] - df['location_y'])**2
         )
-    
-    # Feature engineering
+
+    # Engineer derived features
     df['dx'] = df['end_location_x'] - df['location_x']
     df['dy'] = df['end_location_y'] - df['location_y']
     df['is_forward'] = (df['dx'] > 0).astype(int)
@@ -112,7 +112,7 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame, holdout_df: pd.Da
     print(f"  Features: {len(num_cols)} numeric + {len(cat_cols)} categorical")
     print(f"  Class balance: {y.sum()/len(y):.1%} successful")
     
-    # Sample for faster tuning (use 50k samples max)
+    # Subsample for faster grid search
     if len(X) > 50000:
         sample_idx = np.random.choice(len(X), 50000, replace=False)
         X_sample = X.iloc[sample_idx]
@@ -122,8 +122,8 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame, holdout_df: pd.Da
         X_sample = X
         y_sample = y
         groups_sample = groups
-    
-    # Hyperparameter grid
+
+    # Define search grid
     param_grid = {
         'n_estimators': [50, 100, 200],
         'max_depth': [5, 10, 15, None],
@@ -155,16 +155,17 @@ def train_pass_difficulty_with_tuning(passes_df: pd.DataFrame, holdout_df: pd.Da
         verbose=0
     )
     
+    # Run grid search
     grid_search.fit(X_sample, y_sample, groups=groups_sample)
-    
+
     best_params = {k.replace("model__", ""): v for k, v in grid_search.best_params_.items()}
     print("\n  Best Parameters:")
     for key, value in best_params.items():
         print(f"    {key}: {value}")
     
     print(f"\n  Best CV Score: {grid_search.best_score_:.2%}")
-    
-    # Train final model with best params on full data
+
+    # Refit best on full data
     print("\n  Training final model on full data...")
     best_model = Pipeline([
         ('preprocess', preprocessor),
@@ -312,9 +313,10 @@ def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame, holdout_df: p
     inertias = []
     silhouette_scores = []
     k_range = range(3, 10)
-    
+
     from sklearn.metrics import silhouette_score
-    
+
+    # Sweep candidate k values
     for k in k_range:
         kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
         labels_km = kmeans.fit_predict(X_scaled)
@@ -323,8 +325,8 @@ def train_tactical_classifier_with_tuning(passes_df: pd.DataFrame, holdout_df: p
     
     best_k = k_range[np.argmax(silhouette_scores)]
     print(f"    Optimal clusters: {best_k} (silhouette: {max(silhouette_scores):.3f})")
-    
-    # Train final K-Means
+
+    # Fit final clustering
     final_kmeans = KMeans(n_clusters=best_k, random_state=42, n_init=10)
     final_kmeans.fit(X_scaled)
     

@@ -11,6 +11,7 @@ interface MatchCatalogResult {
     seasons: string[];
 }
 
+// Sort matches by chosen field
 const sortMatches = (matches: Match[], sortBy: MatchFilters['sortBy']) => {
     const copy = [...matches];
 
@@ -27,6 +28,7 @@ const sortMatches = (matches: Match[], sortBy: MatchFilters['sortBy']) => {
     }
 };
 
+// Fetch and filter the match catalog
 export const useMatches = (filters: MatchFilters = {}) =>
     {
         const query = useQuery({
@@ -34,6 +36,7 @@ export const useMatches = (filters: MatchFilters = {}) =>
         queryFn: () => matchService.getMatches(),
     });
 
+        // Apply filters and build summary
         const data = useMemo((): MatchCatalogResult | undefined => {
             if (!query.data) {
                 return undefined;
@@ -42,6 +45,7 @@ export const useMatches = (filters: MatchFilters = {}) =>
             const allMatches = query.data.matches || [];
             const search = filters.search?.trim().toLowerCase() || '';
 
+            // Apply search and filter rules
             const filtered = allMatches.filter((match) => {
                 const home = match.home_team?.team_name?.toLowerCase() || '';
                 const away = match.away_team?.team_name?.toLowerCase() || '';
@@ -74,6 +78,7 @@ export const useMatches = (filters: MatchFilters = {}) =>
         };
     };
 
+// Fetch a single match by id
 export const useMatch = (matchId: number | null) =>
     useQuery({
         queryKey: matchId ? queryKeys.match(matchId) : ['match', 'empty'],

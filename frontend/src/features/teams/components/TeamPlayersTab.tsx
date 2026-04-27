@@ -5,9 +5,11 @@ import { motion } from 'framer-motion';
 import { Users, Hash, User, GitBranch, Eye } from 'lucide-react';
 
 export default function TeamPlayersTab() {
+    // Pull team context
     const { aggregateAnalysis, season, analyzedMatches, analysisRequested, isAnalysisPending, requestAnalysis } =
         useTeamDetailsContext();
 
+    // Empty state branch
     if (analyzedMatches === 0) {
         return (
             <EmptyState
